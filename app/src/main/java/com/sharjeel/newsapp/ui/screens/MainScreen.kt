@@ -69,7 +69,7 @@ fun MainScreen(
     onEditProfileClick: () -> Unit
 ) {
     val navController = rememberNavController()
-    
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
@@ -173,3 +173,4 @@ fun BottomNavigationPreview() {
         BottomNavigation(navController = rememberNavController())
     }
 }
+

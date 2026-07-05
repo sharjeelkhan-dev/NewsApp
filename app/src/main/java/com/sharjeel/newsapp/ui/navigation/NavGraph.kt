@@ -1,6 +1,8 @@
 package com.sharjeel.newsapp.ui.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -9,14 +11,19 @@ import com.sharjeel.newsapp.ui.screens.MainScreen
 import com.sharjeel.newsapp.ui.screens.auth.ForgotPasswordNavigation
 import com.sharjeel.newsapp.ui.screens.auth.LoginScreen
 import com.sharjeel.newsapp.ui.screens.auth.SignupScreen
-import com.sharjeel.newsapp.ui.screens.onboarding.*
-import com.sharjeel.newsapp.ui.screens.trending.TrendingScreen
-import com.sharjeel.newsapp.ui.screens.notification.NotificationScreen
-import com.sharjeel.newsapp.ui.screens.latest_news.LatestNewsScreen
-import com.sharjeel.newsapp.ui.screens.search.SearchScreen
 import com.sharjeel.newsapp.ui.screens.author_profile.AuthorProfileScreen
-import com.sharjeel.newsapp.ui.screens.settings.SettingsScreen
+import com.sharjeel.newsapp.ui.screens.latest_news.LatestNewsScreen
+import com.sharjeel.newsapp.ui.screens.notification.NotificationScreen
+import com.sharjeel.newsapp.ui.screens.onboarding.FillProfileScreen
+import com.sharjeel.newsapp.ui.screens.onboarding.OnboardingScreen
+import com.sharjeel.newsapp.ui.screens.onboarding.OnboardingViewModel
+import com.sharjeel.newsapp.ui.screens.onboarding.SelectCountryScreen
+import com.sharjeel.newsapp.ui.screens.onboarding.SelectSourcesScreen
+import com.sharjeel.newsapp.ui.screens.onboarding.SelectTopicsScreen
 import com.sharjeel.newsapp.ui.screens.profile.EditProfileScreen
+import com.sharjeel.newsapp.ui.screens.search.SearchScreen
+import com.sharjeel.newsapp.ui.screens.settings.SettingsScreen
+import com.sharjeel.newsapp.ui.screens.trending.TrendingScreen
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -45,7 +52,9 @@ fun NavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        // Modifier zero-constraint par lock kiya gaya hai
+        modifier = Modifier.fillMaxSize()
     ) {
         composable(Screen.Onboarding.route) {
             val viewModel: OnboardingViewModel = hiltViewModel()

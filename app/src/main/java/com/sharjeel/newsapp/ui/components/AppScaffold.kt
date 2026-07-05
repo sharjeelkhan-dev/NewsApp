@@ -9,7 +9,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -21,8 +20,6 @@ fun AppScaffold(
     containerColor: Color = MaterialTheme.colorScheme.background,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val layoutDirection = LocalLayoutDirection.current
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = containerColor
