@@ -67,7 +67,8 @@ import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 @Composable
 fun SearchScreen(
     onAuthorClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onNewsItemClick: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -115,11 +116,11 @@ fun SearchScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { 
+                    placeholder = {
                         Text(
                             "Search",
                             style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                        ) 
+                        )
                     },
                     leadingIcon = {
                         Icon(
@@ -133,7 +134,7 @@ fun SearchScreen(
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
                                 Icon(
-                                    Icons.Default.Clear, 
+                                    Icons.Default.Clear,
                                     contentDescription = "Clear",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -216,7 +217,7 @@ fun SearchScreen(
                 // Results Content - Show when typing
                 Box(modifier = Modifier.weight(1f)) {
                     when (selectedTab) {
-                        0 -> NewsTabContent()
+                        0 -> NewsTabContent(onNewsItemClick = onNewsItemClick)
                         1 -> TopicsTabContent(
                             topics = topicsState,
                             onToggleSave = { topic ->
@@ -315,7 +316,7 @@ fun RecentSearchesContent(
 }
 
 @Composable
-fun NewsTabContent() {
+fun NewsTabContent(onNewsItemClick: () -> Unit = {}) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -327,7 +328,8 @@ fun NewsTabContent() {
                 title = "Ukraine's President Zelenskyy to BBC: Blood money being paid for Russian oil",
                 publisher = "BBC News",
                 time = "14m ago",
-                image = R.drawable.newsimages2
+                image = R.drawable.newsimages2,
+                onItemClick = onNewsItemClick
             )
         }
         item {
@@ -336,7 +338,8 @@ fun NewsTabContent() {
                 title = "Russian warship: Moskva sinks in Black Sea",
                 publisher = "BBC News",
                 time = "4h ago",
-                image = R.drawable.newsimages
+                image = R.drawable.newsimages,
+                onItemClick = onNewsItemClick
             )
         }
         item {
@@ -345,7 +348,8 @@ fun NewsTabContent() {
                 title = "Her train broke down. Her phone died. And then she met her future husband",
                 publisher = "CNN",
                 time = "1h ago",
-                image = R.drawable.newsimages3
+                image = R.drawable.newsimages3,
+                onItemClick = onNewsItemClick
             )
         }
     }

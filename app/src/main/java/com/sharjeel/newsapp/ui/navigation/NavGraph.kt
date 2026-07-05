@@ -12,6 +12,8 @@ import com.sharjeel.newsapp.ui.screens.auth.ForgotPasswordNavigation
 import com.sharjeel.newsapp.ui.screens.auth.LoginScreen
 import com.sharjeel.newsapp.ui.screens.auth.SignupScreen
 import com.sharjeel.newsapp.ui.screens.author_profile.AuthorProfileScreen
+import com.sharjeel.newsapp.ui.screens.details.CommentScreen
+import com.sharjeel.newsapp.ui.screens.details.DetailScreen
 import com.sharjeel.newsapp.ui.screens.latest_news.LatestNewsScreen
 import com.sharjeel.newsapp.ui.screens.notification.NotificationScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.FillProfileScreen
@@ -42,6 +44,8 @@ sealed class Screen(val route: String) {
     object AuthorProfile : Screen("author_profile")
     object Settings : Screen("settings")
     object EditProfile : Screen("edit_profile")
+    object NewsDetail : Screen("news_detail")
+    object Comments : Screen("comments")
 }
 
 @Composable
@@ -160,6 +164,26 @@ fun NavGraph(
                 },
                 onEditProfileClick = {
                     navController.navigate(Screen.EditProfile.route)
+                },
+                onNewsItemClick = {
+                    navController.navigate(Screen.NewsDetail.route)
+                }
+            )
+        }
+        composable(Screen.NewsDetail.route) {
+            DetailScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onCommentClick = {
+                    navController.navigate(Screen.Comments.route)
+                }
+            )
+        }
+        composable(Screen.Comments.route) {
+            CommentScreen(
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -167,6 +191,9 @@ fun NavGraph(
             TrendingScreen(
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNewsItemClick = {
+                    navController.navigate(Screen.NewsDetail.route)
                 }
             )
         }
@@ -184,6 +211,9 @@ fun NavGraph(
                 },
                 onAuthorClick = {
                     navController.navigate(Screen.AuthorProfile.route)
+                },
+                onNewsItemClick = {
+                    navController.navigate(Screen.NewsDetail.route)
                 }
             )
         }
@@ -194,6 +224,9 @@ fun NavGraph(
                 },
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNewsItemClick = {
+                    navController.navigate(Screen.NewsDetail.route)
                 }
             )
         }

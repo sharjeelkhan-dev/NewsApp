@@ -44,12 +44,12 @@ sealed class BottomBarScreen(
     object Explore : BottomBarScreen(
         route = "explore_tab",
         title = "Explore",
-        icon = R.drawable.compass_northeast_icon
+        icon = R.drawable.search_categories_icon
     )
     object Bookmark : BottomBarScreen(
         route = "bookmark_tab",
         title = "Bookmark",
-        icon = R.drawable.saved_icon
+        icon = R.drawable.saved_bookmark_icon
     )
     object Profile : BottomBarScreen(
         route = "profile_tab",
@@ -66,7 +66,8 @@ fun MainScreen(
     onSearchClick: () -> Unit,
     onAuthorClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onEditProfileClick: () -> Unit
+    onEditProfileClick: () -> Unit,
+    onNewsItemClick: () -> Unit
 ) {
     val navController = rememberNavController()
 
@@ -88,22 +89,27 @@ fun MainScreen(
                     onSeeAllLatestClick = onSeeAllLatestClick,
                     onSearchClick = onSearchClick,
                     onAuthorClick = onAuthorClick,
-                    onFilterClick = { /* TODO: Implement filter */ }
+                    onFilterClick = { /* TODO: Implement filter */ },
+                    onNewsItemClick = onNewsItemClick
                 )
             }
             composable(BottomBarScreen.Explore.route) {
                 ExploreScreen(
                     onSearchClick = onSearchClick,
-                    onAuthorClick = onAuthorClick
+                    onAuthorClick = onAuthorClick,
+                    onNewsItemClick = onNewsItemClick
                 )
             }
             composable(BottomBarScreen.Bookmark.route) {
-                BookmarkScreen()
+                BookmarkScreen(
+                    onNewsItemClick = onNewsItemClick
+                )
             }
             composable(BottomBarScreen.Profile.route) {
                 ProfileScreen(
                     onSettingsClick = onSettingsClick,
-                    onEditProfileClick = onEditProfileClick
+                    onEditProfileClick = onEditProfileClick,
+                    onNewsItemClick = onNewsItemClick
                 )
             }
         }

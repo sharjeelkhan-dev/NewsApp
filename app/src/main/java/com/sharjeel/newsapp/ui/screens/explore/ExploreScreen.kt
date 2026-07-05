@@ -70,7 +70,8 @@ fun ExploreScreenPreview() {
 @Composable
 fun ExploreScreen(
     onSearchClick: () -> Unit,
-    onAuthorClick: () -> Unit
+    onAuthorClick: () -> Unit,
+    onNewsItemClick: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -179,7 +180,8 @@ fun ExploreScreen(
                     Box {
                         ExploreBookmarkStyleItem(
                             article = article,
-                            onAuthorClick = onAuthorClick
+                            onAuthorClick = onAuthorClick,
+                            onItemClick = onNewsItemClick
                         )
                     }
                 }
@@ -192,9 +194,15 @@ fun ExploreScreen(
 
 @Composable
 fun ExploreTopicItem(topic: ExploreTopicData, onToggleSave: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current).data(topic.image).crossfade(true).build(),
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(topic.image)
+                .crossfade(true)
+                .build(),
             contentDescription = null,
             modifier = Modifier
                 .size(70.dp)
@@ -203,124 +211,162 @@ fun ExploreTopicItem(topic: ExploreTopicData, onToggleSave: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = topic.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Text(text = topic.description, style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = topic.name,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            )
+            Text(
+                text = topic.description,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         Spacer(modifier = Modifier.width(8.dp))
         if (topic.isSaved) {
-            Button(onClick = onToggleSave, modifier = Modifier.height(34.dp), shape = RoundedCornerShape(6.dp), colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)) {
-                Text("Saved", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+            Button(
+                onClick = onToggleSave,
+                modifier = Modifier
+                    .width(78.dp)
+                    .height(34.dp),
+                shape = RoundedCornerShape(6.dp),
+                contentPadding = PaddingValues(horizontal = 0.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+            ) {
+                Text(
+                    "Saved",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                )
             }
         } else {
-            OutlinedButton(onClick = onToggleSave, modifier = Modifier.height(34.dp), shape = RoundedCornerShape(6.dp), border = BorderStroke(1.dp, BluePrimary)) {
-                Text("Save", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+            OutlinedButton(
+                onClick = onToggleSave,
+                modifier = Modifier
+                    .width(78.dp)
+                    .height(34.dp),
+                shape = RoundedCornerShape(6.dp),
+                contentPadding = PaddingValues(horizontal = 0.dp),
+                border = BorderStroke(1.dp, BluePrimary)
+            ) {
+                Text(
+                    "Save",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = BluePrimary
+                    )
+                )
             }
         }
     }
 }
 
-/**
- * Custom layout component tracking the structure shown in image_004b58.png blueprint.
- * Places the bounding graphic context to the left and details linearly onto the right.
- */
 @Composable
 fun ExploreBookmarkStyleItem(
     article: ExplorePopularData,
-    onAuthorClick: () -> Unit
+    onAuthorClick: () -> Unit,
+    onItemClick: () -> Unit = {}
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onItemClick() }
     ) {
-        // Thumbnail Image Area (Left Bound - matching the layout boxes perfectly)
+        // Main Image Area - Full Width as seen in the image
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current).data(article.image).crossfade(true).build(),
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(article.image)
+                .crossfade(true)
+                .build(),
             contentDescription = null,
             modifier = Modifier
-                .size(96.dp)
+                .fillMaxWidth()
+                .height(183.dp)
                 .clip(RoundedCornerShape(6.dp)),
             contentScale = ContentScale.Crop
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Metadata description context stack (Right Bound Box Stack)
-        Column(
-            modifier = Modifier.weight(1f)
+        // Category Label
+        Text(
+            text = article.category,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Article Title
+        Text(
+            text = article.title,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                lineHeight = 24.sp
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Sub-row for publisher info and more action
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = article.category,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = article.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                ),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Sub-row alignment block for author, publisher and timeline elements
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            // Circular identifier avatar
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFBB1919))
+                    .clickable { onAuthorClick() },
+                contentAlignment = Alignment.Center
             ) {
-                // Circular identifier avatar
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFBB1919))
-                        .clickable { onAuthorClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("B", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
-                }
+                Text("B", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+            }
 
-                Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-                Text(
-                    text = article.publisher,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.clickable { onAuthorClick() }
-                )
+            Text(
+                text = article.publisher,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.clickable { onAuthorClick() }
+            )
 
-                Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
+            Icon(
+                painter = painterResource(id = R.drawable.clock_line_icon),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Text(
+                text = article.time,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(onClick = { /* Action popup context options */ }, modifier = Modifier.size(24.dp)) {
                 Icon(
-                    painter = painterResource(id = R.drawable.clock_line_icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
+                    imageVector = Icons.Default.MoreHoriz,
+                    contentDescription = "More",
+                    modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                Text(
-                    text = article.time,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                IconButton(onClick = { /* Action popup context options */ }, modifier = Modifier.size(24.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.MoreHoriz,
-                        contentDescription = "More",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

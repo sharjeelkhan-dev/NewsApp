@@ -32,7 +32,8 @@ import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 @Composable
 fun TrendingScreen(
     onBackClick: () -> Unit,
-    onAuthorClick: () -> Unit = {}
+    onAuthorClick: () -> Unit = {},
+    onNewsItemClick: () -> Unit = {}
 ) {
     AppScaffold(
         topBar = {
@@ -85,7 +86,8 @@ fun TrendingScreen(
                     publisher = "BBC News",
                     time = "4h ago",
                     image = R.drawable.newsimages,
-                    onAuthorClick = onAuthorClick
+                    onAuthorClick = onAuthorClick,
+                    onItemClick = onNewsItemClick
                 )
             }
             item {
@@ -95,7 +97,8 @@ fun TrendingScreen(
                     publisher = "BBC News",
                     time = "14m ago",
                     image = R.drawable.newsimages2,
-                    onAuthorClick = onAuthorClick
+                    onAuthorClick = onAuthorClick,
+                    onItemClick = onNewsItemClick
                 )
             }
             item {
@@ -105,7 +108,8 @@ fun TrendingScreen(
                     publisher = "CNN",
                     time = "1h ago",
                     image = R.drawable.newsimages3,
-                    onAuthorClick = onAuthorClick
+                    onAuthorClick = onAuthorClick,
+                    onItemClick = onNewsItemClick
                 )
             }
         }
@@ -119,10 +123,13 @@ fun TrendingItem(
     publisher: String,
     time: String,
     image: Int,
-    onAuthorClick: () -> Unit = {}
+    onAuthorClick: () -> Unit = {},
+    onItemClick: () -> Unit = {}
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onItemClick)
     ) {
         Image(
             painter = painterResource(id = image),

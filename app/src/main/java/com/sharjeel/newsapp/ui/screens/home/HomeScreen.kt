@@ -1,5 +1,7 @@
 package com.sharjeel.newsapp.ui.screens.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -73,7 +76,6 @@ fun HomeScreenPreview() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onSeeAllTrendingClick: () -> Unit,
@@ -81,7 +83,8 @@ fun HomeScreen(
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
     onAuthorClick: () -> Unit,
-    onFilterClick: () -> Unit = {}
+    onFilterClick: () -> Unit = {},
+    onNewsItemClick: () -> Unit = {}
 ) {
     val categories = listOf("All", "Sports", "Politics", "Business", "Health", "Travel", "Science")
     var selectedCategory by remember { mutableStateOf("All") }
@@ -97,7 +100,6 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Header (Hamesha top par locked rahega)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -118,7 +120,6 @@ fun HomeScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Search Bar (Hamesha yahan locked rahega)
             OutlinedTextField(
                 value = "",
                 onValueChange = { },
@@ -168,18 +169,17 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. Scrollable Content Area (Search Bar ke neeche ka sab kuch scroll hoga)
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
                 flingBehavior = flingBehavior,
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                // Trending Section ab scrollable list ka hissa hai
                 item(key = "trending_section") {
                     TrendingSection(
                         onSeeAllClick = onSeeAllTrendingClick,
-                        onAuthorClick = onAuthorClick
+                        onAuthorClick = onAuthorClick,
+                        onItemClick = onNewsItemClick
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -209,7 +209,7 @@ fun HomeScreen(
                         time = "14m ago",
                         image = R.drawable.newsimages2,
                         onAuthorClick = onAuthorClick,
-                        onItemClick = { /* Detail */ }
+                        onItemClick = onNewsItemClick
                     )
                     Spacer(modifier = Modifier.height(22.dp))
                 }
@@ -221,7 +221,7 @@ fun HomeScreen(
                         time = "1h ago",
                         image = R.drawable.newsimages3,
                         onAuthorClick = onAuthorClick,
-                        onItemClick = { /* Detail */ }
+                        onItemClick = onNewsItemClick
                     )
                     Spacer(modifier = Modifier.height(22.dp))
                 }
@@ -233,7 +233,7 @@ fun HomeScreen(
                         time = "3h ago",
                         image = R.drawable.newsimages,
                         onAuthorClick = onAuthorClick,
-                        onItemClick = { /* Detail */ }
+                        onItemClick = onNewsItemClick
                     )
                     Spacer(modifier = Modifier.height(22.dp))
                 }
@@ -245,7 +245,7 @@ fun HomeScreen(
                         time = "5h ago",
                         image = R.drawable.newsimages2,
                         onAuthorClick = onAuthorClick,
-                        onItemClick = { /* Detail */ }
+                        onItemClick = onNewsItemClick
                     )
                 }
             }
@@ -256,9 +256,16 @@ fun HomeScreen(
 @Composable
 fun TrendingSection(
     onSeeAllClick: () -> Unit,
-    onAuthorClick: () -> Unit = {}
+    onAuthorClick: () -> Unit = {},
+    onItemClick: () -> Unit = {}
 ) {
-    Column {
+    Column(
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onItemClick
+        )
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -417,24 +424,51 @@ fun CategoryTabs(
             key = { it }
         ) { category ->
             val isSelected = category == selectedCategory
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            val animationProgress by animateFloatAsState(
+                targetValue = if (isSelected) 1f else 0f,
+                animationSpec = tween(durationMillis = 250),
+                label = "TabLineAnimation"
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(IntrinsicSize.Max)
+                    .padding(bottom = 6.dp)
+            ) {
                 Text(
                     text = category,
-                    modifier = Modifier.clickable { onCategorySelected(category) },
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            onCategorySelected(category)
+                        }
+
+                        .drawBehind {
+                            if (animationProgress > 0f) {
+                                val strokeWidth = 2.dp.toPx()
+                                val y = size.height + 4.dp.toPx()
+                                val lineWidth = size.width * animationProgress
+                                val startX = (size.width - lineWidth) / 2
+
+                                drawLine(
+                                    color = BluePrimary,
+                                    start = androidx.compose.ui.geometry.Offset(startX, y),
+                                    end = androidx.compose.ui.geometry.Offset(startX + lineWidth, y),
+                                    strokeWidth = strokeWidth,
+                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                )
+                            }
+                        },
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isSelected) MaterialTheme.colorScheme.onBackground
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
-                if (isSelected) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(16.dp)
-                            .height(2.dp)
-                            .background(BluePrimary)
-                    )
-                }
             }
         }
     }

@@ -27,7 +27,9 @@ fun BookmarkScreenPreview() {
 }
 
 @Composable
-fun BookmarkScreen() {
+fun BookmarkScreen(
+    onNewsItemClick: () -> Unit = {}
+) {
     var searchQuery by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val flingBehavior = SmoothScrollConfig.rememberSmoothFlingBehavior()
@@ -56,21 +58,21 @@ fun BookmarkScreen() {
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { 
+                placeholder = {
                     Text(
                         "Search",
                         style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                    ) 
+                    )
                 },
-                leadingIcon = { 
+                leadingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.magnifying_glass_icon),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )  
+                    )
                 },
-                trailingIcon = { 
+                trailingIcon = {
                     IconButton(onClick = { /* TODO: Implement filter */ }) {
                         Icon(
                             painter = painterResource(id = R.drawable.sliders_icon),
@@ -107,7 +109,7 @@ fun BookmarkScreen() {
                         time = "14m ago",
                         image = R.drawable.newsimages2,
                         onAuthorClick = { /* Bookmark screens navigation usually goes to detail or author */ },
-                        onItemClick = { /* Detail */ }
+                        onItemClick = onNewsItemClick
                     )
                 }
             }
