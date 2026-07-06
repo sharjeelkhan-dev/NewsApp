@@ -29,9 +29,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sharjeel.newsapp.R
-import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.AkhbarButton
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
+import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.SocialButton
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 
@@ -70,7 +70,9 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
-    AppScaffold { padding ->
+    AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -163,13 +165,13 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SocialButton(
-                    icon = R.drawable.icon__1_,
+                    icon = R.drawable.facebook,
                     text = "Facebook",
                     onClick = {},
                     modifier = Modifier.weight(1f)
                 )
                 SocialButton(
-                    icon = R.drawable.icon,
+                    icon = R.drawable.google,
                     text = "Google",
                     onClick = {},
                     modifier = Modifier.weight(1f)

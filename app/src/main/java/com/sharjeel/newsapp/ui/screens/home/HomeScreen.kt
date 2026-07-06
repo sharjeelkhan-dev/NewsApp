@@ -91,7 +91,9 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     val flingBehavior = SmoothScrollConfig.rememberSmoothFlingBehavior()
 
-    AppScaffold { padding ->
+    AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

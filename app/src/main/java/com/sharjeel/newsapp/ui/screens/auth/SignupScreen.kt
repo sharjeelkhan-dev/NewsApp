@@ -1,7 +1,16 @@
 package com.sharjeel.newsapp.ui.screens.auth
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
@@ -20,9 +29,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sharjeel.newsapp.R
-import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.AkhbarButton
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
+import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.SocialButton
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 
@@ -58,7 +67,9 @@ fun SignupScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
-    AppScaffold { padding ->
+    AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -144,13 +155,13 @@ fun SignupScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SocialButton(
-                    icon = R.drawable.icon__1_,
+                    icon = R.drawable.facebook,
                     text = "Facebook",
                     onClick = {},
                     modifier = Modifier.weight(1f)
                 )
                 SocialButton(
-                    icon = R.drawable.icon,
+                    icon = R.drawable.google,
                     text = "Google",
                     onClick = {},
                     modifier = Modifier.weight(1f)

@@ -82,16 +82,15 @@ fun CommentScreen(
     var commentText by remember { mutableStateOf("") }
 
     AppScaffold(
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .statusBarsPadding()
-                .imePadding() // Keyboard handling
         ) {
-            // Header Row
+            // 1. Header Row (Fixed)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,7 +104,7 @@ fun CommentScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.Black
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
@@ -113,7 +112,7 @@ fun CommentScreen(
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 18.sp
                     ),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -122,7 +121,7 @@ fun CommentScreen(
                 Spacer(modifier = Modifier.width(24.dp))
             }
 
-            // Comments List
+            // 2. Comments List (Scrollable Middle)
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -146,15 +145,15 @@ fun CommentScreen(
                 }
             }
 
-            // Bottom Input Section
+            // 3. Bottom Input Section (Fixed Footer)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .navigationBarsPadding()
+                    .imePadding() // Keyboard handling
                     .padding(24.dp)
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -164,13 +163,13 @@ fun CommentScreen(
                         onValueChange = { commentText = it },
                         modifier = Modifier.weight(1f),
                         placeholder = { 
-                            Text("Type your comment", color = Color(0xFFA0A3BD), fontSize = 14.sp) 
+                            Text("Type your comment", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 14.sp) 
                         },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFC4C4C4),
-                            unfocusedBorderColor = Color(0xFFC4C4C4),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         ),
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -218,14 +217,14 @@ fun CommentItem(
                 text = comment.author,
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = comment.text,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color(0xFF4E4B66),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 20.sp
                 )
             )
@@ -233,7 +232,7 @@ fun CommentItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = comment.time,
-                    style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF4E4B66))
+                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 // Likes Button
@@ -248,13 +247,13 @@ fun CommentItem(
                             .clip(CircleShape)
                             .clickable { onLikeToggle() }
                             .padding(2.dp),
-                        tint = if (comment.isLiked) Color(0xFFED2E7E) else Color(0xFF4E4B66)
+                        tint = if (comment.isLiked) Color(0xFFED2E7E) else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = formatLikes(comment.likesCount),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (comment.isLiked) Color(0xFFED2E7E) else Color(0xFF4E4B66)
+                            color = if (comment.isLiked) Color(0xFFED2E7E) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -268,12 +267,12 @@ fun CommentItem(
                         painter = painterResource(id = R.drawable.reply_arrow_outline_icon),
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
-                        tint = Color(0xFF4E4B66)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "reply",
-                        style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF4E4B66))
+                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }
             }
@@ -282,7 +281,7 @@ fun CommentItem(
                 Text(
                     text = "See more (${comment.replies})",
                     style = MaterialTheme.typography.labelMedium.copy(
-                        color = Color(0xFF4E4B66),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.SemiBold
                     ),
                     modifier = Modifier.clickable { /* Show replies */ }

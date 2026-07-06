@@ -65,7 +65,7 @@ fun DetailScreen(
     var isBookmarked by remember { mutableStateOf(true) }
 
     AppScaffold(
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -88,7 +88,7 @@ fun DetailScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color(0xFF626262)
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -100,7 +100,7 @@ fun DetailScreen(
                         painter = painterResource(id = R.drawable.share_line_icon),
                         contentDescription = "Share",
                         modifier = Modifier.size(18.dp),
-                        tint = Color(0xFF626262)
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Spacer(modifier = Modifier.width(20.dp))
@@ -111,7 +111,7 @@ fun DetailScreen(
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "More",
-                        tint = Color(0xFF626262)
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -155,14 +155,14 @@ fun DetailScreen(
                             text = "BBC News",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 16.sp
                             )
                         )
                         Text(
                             text = "14m ago",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color(0xFF626262),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         )
@@ -235,7 +235,7 @@ fun DetailScreen(
                 Text(
                     text = "Europe",
                     style = MaterialTheme.typography.labelMedium.copy(
-                        color = Color(0xFF757575),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 )
@@ -246,7 +246,7 @@ fun DetailScreen(
                     text = "Ukraine's President Zelensky to BBC: Blood money being paid for Russian oil",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF212121),
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 22.sp,
                         lineHeight = 30.sp
                     )
@@ -257,7 +257,7 @@ fun DetailScreen(
                 Text(
                     text = "Ukrainian President Volodymyr Zelensky has accused European countries that continue to buy Russian oil of \"earning their money in other people's blood\".",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color(0xFF626262),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 24.sp,
                         fontSize = 15.sp
                     )
@@ -268,7 +268,7 @@ fun DetailScreen(
                 Text(
                     text = $$"In an interview with the BBC, President Zelensky singled out Germany and Hungary, accusing them of blocking efforts to embargo energy sales, from which Russia stands to make up to £250bn ($326bn) this year.",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color(0xFF626262),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 24.sp,
                         fontSize = 15.sp
                     )
@@ -294,7 +294,7 @@ fun DetailScreen(
                         imageVector = if (isLiked) Icons.Default.Favorite
                         else Icons.Default.FavoriteBorder,
                         contentDescription = "Likes",
-                        tint = if (isLiked) Color(0xFFE91E63) else Color(0xFF2C2C2C),
+                        tint = if (isLiked) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -302,7 +302,7 @@ fun DetailScreen(
                         text = if (isLiked) "24.6K" else "24.5K",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF2C2C2C),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp
                         )
                     )
@@ -318,7 +318,7 @@ fun DetailScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.talk_bubble_icon),
                         contentDescription = "Comments",
-                        tint = Color(0xFF2C2C2C),
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -326,7 +326,7 @@ fun DetailScreen(
                         text = "1K",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
-                            color = Color(0xFF2C2C2C),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp
                         )
                     )
@@ -342,7 +342,7 @@ fun DetailScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.saved_bookmark_icon),
                         contentDescription = "Bookmark",
-                        tint = if (isBookmarked) BluePrimary else Color(0xFF2C2C2C),
+                        tint = if (isBookmarked) BluePrimary else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(18.dp)
                     )
                 }

@@ -1,7 +1,10 @@
 package com.sharjeel.newsapp.ui.screens.author_profile
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,7 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -63,6 +69,7 @@ fun AuthorProfileScreen(
     var isFollowing by remember { mutableStateOf(true) }
 
     AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("") },
@@ -230,19 +237,45 @@ fun AuthorProfileScreen(
                         selectedTabIndex = selectedTab,
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.onBackground,
-                        divider = {
-                        }
+                        divider = {},
+                        indicator = {}
                     ) {
                         tabs.forEachIndexed { index, title ->
+                            val isSelected = selectedTab == index
                             Tab(
-                                selected = selectedTab == index,
+                                selected = isSelected,
                                 onClick = { selectedTab = index },
                                 text = {
+                                    val animationProgress by animateFloatAsState(
+                                        targetValue = if (isSelected) 1f else 0f,
+                                        animationSpec = tween(durationMillis = 250),
+                                        label = "TabLineAnimation"
+                                    )
+                                    val indicatorColor = MaterialTheme.colorScheme.primary
                                     Text(
                                         text = title,
+                                        modifier = Modifier
+                                            .drawBehind {
+                                                if (animationProgress > 0f) {
+                                                    val strokeWidth = 2.dp.toPx()
+                                                    val y = size.height + 6.dp.toPx()
+
+                                                    val lineWidth = size.width * animationProgress
+                                                    val startX = (size.width - lineWidth) / 2
+
+                                                    drawLine(
+                                                        color = indicatorColor,
+                                                        start = Offset(startX, y),
+                                                        end = Offset(startX + lineWidth, y),
+                                                        strokeWidth = strokeWidth,
+                                                        cap = StrokeCap.Round
+                                                    )
+                                                }
+                                            },
                                         style = MaterialTheme.typography.bodyLarge.copy(
-                                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 16.sp
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 16.sp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
                                         ),
                                         maxLines = 1
                                     )

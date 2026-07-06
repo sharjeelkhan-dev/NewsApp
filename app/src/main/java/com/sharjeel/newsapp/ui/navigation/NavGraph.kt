@@ -13,9 +13,12 @@ import com.sharjeel.newsapp.ui.screens.auth.LoginScreen
 import com.sharjeel.newsapp.ui.screens.auth.SignupScreen
 import com.sharjeel.newsapp.ui.screens.author_profile.AuthorProfileScreen
 import com.sharjeel.newsapp.ui.screens.details.CommentScreen
+import com.sharjeel.newsapp.ui.screens.details.CreateNewsScreen
 import com.sharjeel.newsapp.ui.screens.details.DetailScreen
+import com.sharjeel.newsapp.ui.screens.details.PublishedNewsDetailScreen
 import com.sharjeel.newsapp.ui.screens.latest_news.LatestNewsScreen
 import com.sharjeel.newsapp.ui.screens.notification.NotificationScreen
+import com.sharjeel.newsapp.ui.screens.onboarding.AdvancedSplashScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.FillProfileScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.OnboardingScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.OnboardingViewModel
@@ -28,24 +31,27 @@ import com.sharjeel.newsapp.ui.screens.settings.SettingsScreen
 import com.sharjeel.newsapp.ui.screens.trending.TrendingScreen
 
 sealed class Screen(val route: String) {
-    object Onboarding : Screen("onboarding")
-    object Login : Screen("login")
-    object Signup : Screen("signup")
-    object SelectCountry : Screen("select_country")
-    object SelectTopics : Screen("select_topics")
-    object SelectSources : Screen("select_sources")
-    object FillProfile : Screen("fill_profile")
-    object Main : Screen("main")
-    object ForgotPassword : Screen("forgot_password")
-    object Trending : Screen("trending")
-    object Notification : Screen("notification")
-    object LatestNews : Screen("latest_news")
-    object Search : Screen("search")
-    object AuthorProfile : Screen("author_profile")
-    object Settings : Screen("settings")
-    object EditProfile : Screen("edit_profile")
-    object NewsDetail : Screen("news_detail")
-    object Comments : Screen("comments")
+    data object Splash : Screen("splash")
+    data object Onboarding : Screen("onboarding")
+    data object Login : Screen("login")
+    data object Signup : Screen("signup")
+    data object SelectCountry : Screen("select_country")
+    data object SelectTopics : Screen("select_topics")
+    data object SelectSources : Screen("select_sources")
+    data object FillProfile : Screen("fill_profile")
+    data object Main : Screen("main")
+    data object ForgotPassword : Screen("forgot_password")
+    data object Trending : Screen("trending")
+    data object Notification : Screen("notification")
+    data object LatestNews : Screen("latest_news")
+    data object Search : Screen("search")
+    data object AuthorProfile : Screen("author_profile")
+    data object Settings : Screen("settings")
+    data object EditProfile : Screen("edit_profile")
+    data object NewsDetail : Screen("news_detail")
+    data object Comments : Screen("comments")
+    data object CreateNews : Screen("create_news")
+    data object PublishedNewsDetail : Screen("published_news_detail")
 }
 
 @Composable
@@ -56,10 +62,19 @@ fun NavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
-        // Modifier zero-constraint par lock kiya gaya hai
+        startDestination = Screen.Splash.route,
         modifier = Modifier.fillMaxSize()
     ) {
+        composable(Screen.Splash.route) {
+            // Humne aapki upgraded dynamic splash screen yahan attach kar di hai
+            AdvancedSplashScreen(
+                onAnimationFinished = {
+                    navController.navigate(startDestination) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Onboarding.route) {
             val viewModel: OnboardingViewModel = hiltViewModel()
             OnboardingScreen(
@@ -167,6 +182,9 @@ fun NavGraph(
                 },
                 onNewsItemClick = {
                     navController.navigate(Screen.NewsDetail.route)
+                },
+                onCreateNewsClick = {
+                    navController.navigate(Screen.CreateNews.route)
                 }
             )
         }
@@ -182,6 +200,23 @@ fun NavGraph(
         }
         composable(Screen.Comments.route) {
             CommentScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.CreateNews.route) {
+            CreateNewsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onPublishClick = {
+                    navController.navigate(Screen.PublishedNewsDetail.route)
+                }
+            )
+        }
+        composable(Screen.PublishedNewsDetail.route) {
+            PublishedNewsDetailScreen(
                 onBackClick = {
                     navController.popBackStack()
                 }

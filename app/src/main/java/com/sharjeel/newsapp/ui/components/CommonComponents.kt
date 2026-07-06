@@ -18,6 +18,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.ui.theme.White
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.painter.Painter
+import com.sharjeel.newsapp.ui.theme.BluePrimary
+
 @Composable
 fun AkhbarButton(
     text: String,
@@ -125,6 +129,24 @@ fun ShimmerPlaceholder(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+    )
+}
+
+@Composable
+fun ToolbarIcon(
+    painter: Painter,
+    isSelected: Boolean = false,
+    onClick: () -> Unit
+) {
+    Icon(
+        painter = painter,
+        contentDescription = null,
+        tint = if (isSelected) BluePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .size(20.dp)
     )
 }
 

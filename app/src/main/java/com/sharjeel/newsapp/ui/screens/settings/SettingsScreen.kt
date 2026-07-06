@@ -52,6 +52,7 @@ fun SettingsScreen(
     var isDarkMode by remember { mutableStateOf(false) }
 
     AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -60,7 +61,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
-                            color = Color(0xFF1C1E21)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 },
@@ -69,7 +70,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color(0xFF1C1E21)
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -115,7 +116,7 @@ fun SettingsScreen(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = BluePrimary,
                             uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = Color(0xFFEEF1F4),
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
                             uncheckedBorderColor = Color.Transparent
                         ),
                         thumbContent = {
@@ -173,14 +174,14 @@ fun SettingsItem(
                     Icon(
                         imageVector = iconVector,
                         contentDescription = null,
-                        tint = Color(0xFF1C1E21),
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )
                 } else if (iconPainter != null) {
                     Icon(
                         painter = iconPainter,
                         contentDescription = null,
-                        tint = Color(0xFF1C1E21),
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -190,7 +191,7 @@ fun SettingsItem(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 16.sp,
-                    color = Color(0xFF1C1E21),
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Normal
                 )
             )
@@ -203,7 +204,7 @@ fun SettingsItem(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = Color(0xFF626262),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
             }

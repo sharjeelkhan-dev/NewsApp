@@ -36,6 +36,7 @@ fun TrendingScreen(
     onNewsItemClick: () -> Unit = {}
 ) {
     AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {

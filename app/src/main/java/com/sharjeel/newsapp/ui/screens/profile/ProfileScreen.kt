@@ -58,7 +58,8 @@ import com.sharjeel.newsapp.util.SmoothScrollConfig
 fun ProfileScreen(
     onSettingsClick: () -> Unit,
     onEditProfileClick: () -> Unit,
-    onNewsItemClick: () -> Unit = {}
+    onNewsItemClick: () -> Unit = {},
+    onCreateNewsClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableIntStateOf(1) } // "Recent" default selected
     val tabs = listOf("News", "Recent")
@@ -67,9 +68,10 @@ fun ProfileScreen(
 
     // FloatingActionButton configuration intact
     AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* TODO: Create Content */ },
+                onClick = onCreateNewsClick,
                 containerColor = BluePrimary,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -104,7 +106,7 @@ fun ProfileScreen(
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1C1E21)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 )
 
@@ -115,7 +117,7 @@ fun ProfileScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_settings),
                         contentDescription = "Settings",
-                        tint = Color(0xFF1C1E21),
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -135,7 +137,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(100.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFEEF1F4)),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -163,7 +165,7 @@ fun ProfileScreen(
                     text = "Wilson Franci",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1C1E21),
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 16.sp
                     )
                 )
@@ -173,7 +175,7 @@ fun ProfileScreen(
                 Text(
                     text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color(0xFF626262),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 21.sp,
                         fontSize = 14.sp
                     )
@@ -235,7 +237,7 @@ fun ProfileScreen(
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.Transparent,
-                    contentColor = Color(0xFF1C1E21),
+                    contentColor = MaterialTheme.colorScheme.onBackground,
                     divider = {},
                     indicator = {},
                     modifier = Modifier.width(220.dp)
@@ -251,6 +253,7 @@ fun ProfileScreen(
                                     animationSpec = tween(durationMillis = 250),
                                     label = "TabLineAnimation"
                                 )
+                                val indicatorColor = MaterialTheme.colorScheme.primary
                                 Text(
                                     text = title,
                                     modifier = Modifier
@@ -263,7 +266,7 @@ fun ProfileScreen(
                                                 val startX = (size.width - lineWidth) / 2
 
                                                 drawLine(
-                                                    color = Color(0xFF1877F2),
+                                                    color = indicatorColor,
                                                     start = Offset(startX, y),
                                                     end = Offset(startX + lineWidth, y),
                                                     strokeWidth = strokeWidth,
@@ -273,13 +276,14 @@ fun ProfileScreen(
                                         },
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 16.sp
+                                        fontSize = 16.sp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
                                     ),
                                     maxLines = 1
                                 )
                             },
-                            selectedContentColor = Color(0xFF1C1E21),
-                            unselectedContentColor = Color(0xFF626262)
+                            selectedContentColor = MaterialTheme.colorScheme.onBackground,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -331,14 +335,14 @@ fun ProfileStat(number: String, label: String) {
             text = number,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1C1E21),
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 16.sp
             )
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                color = Color(0xFF626262),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Normal
             )

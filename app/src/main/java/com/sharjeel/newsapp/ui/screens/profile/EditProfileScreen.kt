@@ -66,6 +66,7 @@ fun EditProfileScreen(
     var website by remember { mutableStateOf("") }
 
     AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -74,7 +75,7 @@ fun EditProfileScreen(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
-                            color = Color(0xFF1C1E21)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 },
@@ -83,7 +84,7 @@ fun EditProfileScreen(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Cancel",
-                            tint = Color(0xFF1C1E21)
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -92,7 +93,7 @@ fun EditProfileScreen(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Save",
-                            tint = Color(0xFF1C1E21)
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -123,7 +124,7 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .size(140.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFEEF1F4)),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(

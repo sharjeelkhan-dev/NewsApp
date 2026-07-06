@@ -102,6 +102,7 @@ fun SearchScreen(
     }
 
     AppScaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column(
                 modifier = Modifier

@@ -67,7 +67,8 @@ fun MainScreen(
     onAuthorClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onEditProfileClick: () -> Unit,
-    onNewsItemClick: () -> Unit
+    onNewsItemClick: () -> Unit,
+    onCreateNewsClick: () -> Unit
 ) {
     val navController = rememberNavController()
 
@@ -109,7 +110,8 @@ fun MainScreen(
                 ProfileScreen(
                     onSettingsClick = onSettingsClick,
                     onEditProfileClick = onEditProfileClick,
-                    onNewsItemClick = onNewsItemClick
+                    onNewsItemClick = onNewsItemClick,
+                    onCreateNewsClick = onCreateNewsClick
                 )
             }
         }
