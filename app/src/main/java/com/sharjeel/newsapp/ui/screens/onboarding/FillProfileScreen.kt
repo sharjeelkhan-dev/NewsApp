@@ -53,18 +53,9 @@ fun FillProfileScreenPreview() {
     NewsAppTheme {
         FillProfileScreen(
             onBackClick = {},
-            onNextClick = { _, _, _, _ -> }
-        )
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun FillProfileScreenDarkPreview() {
-    NewsAppTheme {
-        FillProfileScreen(
-            onBackClick = {},
-            onNextClick = { _, _, _, _ -> }
+            onNextClick = { _, _, _, _, _, _ -> },
+            initialEmail = "hello@gmail.com",
+            initialPhone = "+92 123 456789"
         )
     }
 }
@@ -73,12 +64,19 @@ fun FillProfileScreenDarkPreview() {
 @Composable
 fun FillProfileScreen(
     onBackClick: () -> Unit,
-    onNextClick: (String, String, String, String) -> Unit
+    onNextClick: (String, String, String, String, String, String) -> Unit,
+    initialEmail: String = "",
+    initialPhone: String = ""
 ) {
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(initialEmail) }
+    var phoneNumber by remember { mutableStateOf(initialPhone) }
+    var bio by remember { mutableStateOf("") }
+    var website by remember { mutableStateOf("") }
+    
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
 
     AppScaffold(
         topBar = {
@@ -106,7 +104,14 @@ fun FillProfileScreen(
         bottomBar = {
             AkhbarButton(
                 text = "Next",
-                onClick = { onNextClick(username, fullName, email, phoneNumber) },
+                onClick = { 
+                    emailError = if (email.isEmpty()) "Email Address is required" else null
+                    phoneError = if (phoneNumber.isEmpty()) "Phone Number is required" else null
+                    
+                    if (emailError == null && phoneError == null) {
+                        onNextClick(username, fullName, email, phoneNumber, bio, website) 
+                    }
+                },
                 modifier = Modifier
                     .padding(24.dp)
                     .fillMaxWidth()
@@ -185,16 +190,44 @@ fun FillProfileScreen(
 
             AkhbarTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { 
+                    email = it
+                    if (emailError != null) emailError = null
+                },
                 label = "Email Address*",
+                isError = emailError != null,
+                errorMessage = emailError,
+                enabled = initialEmail.isEmpty() // Disable if already provided during signup
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             AkhbarTextField(
                 value = phoneNumber,
-                onValueChange = { phoneNumber = it },
+                onValueChange = { 
+                    phoneNumber = it
+                    if (phoneError != null) phoneError = null
+                },
                 label = "Phone Number*",
+                isError = phoneError != null,
+                errorMessage = phoneError,
+                enabled = initialPhone.isEmpty() // Disable if already provided during signup
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            AkhbarTextField(
+                value = bio,
+                onValueChange = { bio = it },
+                label = "Bio",
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            AkhbarTextField(
+                value = website,
+                onValueChange = { website = it },
+                label = "Website",
             )
             Spacer(modifier = Modifier.height(24.dp))
         }

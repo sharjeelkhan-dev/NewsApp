@@ -1,13 +1,23 @@
 package com.sharjeel.newsapp.ui.navigation
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sharjeel.newsapp.ui.screens.MainScreen
+import com.sharjeel.newsapp.ui.screens.auth.AuthViewModel
 import com.sharjeel.newsapp.ui.screens.auth.ForgotPasswordNavigation
 import com.sharjeel.newsapp.ui.screens.auth.LoginScreen
 import com.sharjeel.newsapp.ui.screens.auth.SignupScreen
@@ -26,15 +36,18 @@ import com.sharjeel.newsapp.ui.screens.onboarding.SelectCountryScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.SelectSourcesScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.SelectTopicsScreen
 import com.sharjeel.newsapp.ui.screens.profile.EditProfileScreen
+import com.sharjeel.newsapp.ui.screens.profile.ProfileViewModel
 import com.sharjeel.newsapp.ui.screens.search.SearchScreen
 import com.sharjeel.newsapp.ui.screens.settings.SettingsScreen
 import com.sharjeel.newsapp.ui.screens.trending.TrendingScreen
+import kotlinx.coroutines.flow.collectLatest
 
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
     data object Onboarding : Screen("onboarding")
     data object Login : Screen("login")
     data object Signup : Screen("signup")
+    data object SignupOtp : Screen("signup_otp")
     data object SelectCountry : Screen("select_country")
     data object SelectTopics : Screen("select_topics")
     data object SelectSources : Screen("select_sources")
@@ -59,6 +72,7 @@ fun NavGraph(
     startDestination: String
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(
         navController = navController,
@@ -66,7 +80,6 @@ fun NavGraph(
         modifier = Modifier.fillMaxSize()
     ) {
         composable(Screen.Splash.route) {
-            // Humne aapki upgraded dynamic splash screen yahan attach kar di hai
             AdvancedSplashScreen(
                 onAnimationFinished = {
                     navController.navigate(startDestination) {
@@ -87,21 +100,85 @@ fun NavGraph(
             )
         }
         composable(Screen.Login.route) {
-            LoginScreen(
-                onLoginClick = { _, _ ->
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+            val viewModel: AuthViewModel = hiltViewModel()
+            val savedEmail by viewModel.savedEmail.collectAsState(initial = "")
+            val isRememberMeChecked by viewModel.isRememberMeChecked.collectAsState(initial = false)
+
+            LaunchedEffect(key1 = true) {
+                viewModel.eventFlow.collectLatest { event ->
+                    when (event) {
+                        is AuthViewModel.UiEvent.NavigateToHome -> {
+                            navController.navigate(Screen.Main.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        }
+                        is AuthViewModel.UiEvent.ShowError -> {
+                            val message = event.message
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        }
+                        is AuthViewModel.UiEvent.ShowMessage -> {
+                            Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                        }
+                        else -> {}
                     }
+                }
+            }
+
+            LoginScreen(
+                onLoginClick = { email, password, rememberMe ->
+                    viewModel.login(email, password, rememberMe)
                 },
                 onSignupClick = {
                     navController.navigate(Screen.Signup.route)
                 },
                 onForgotPasswordClick = {
                     navController.navigate(Screen.ForgotPassword.route)
-                }
+                },
+                onGoogleSignInClick = { idToken ->
+                    viewModel.signInWithGoogle(idToken)
+                },
+                onFacebookSignInClick = { accessToken ->
+                    viewModel.signInWithFacebook(accessToken)
+                },
+                isLoading = viewModel.isLoading.value,
+                initialEmail = savedEmail,
+                initialRememberMe = isRememberMeChecked
             )
         }
         composable(Screen.ForgotPassword.route) {
+            val viewModel: AuthViewModel = hiltViewModel()
+            var navigateToCongratulations by remember { mutableStateOf(false) }
+            var navigateToOtp by remember { mutableStateOf<String?>(null) }
+            var navigateToResetPassword by remember { mutableStateOf(false) }
+            
+            LaunchedEffect(key1 = true) {
+                viewModel.eventFlow.collectLatest { event ->
+                    when (event) {
+                        is AuthViewModel.UiEvent.NavigateToCongratulations -> {
+                            navigateToCongratulations = true
+                        }
+                        is AuthViewModel.UiEvent.NavigateToOtp -> {
+                            navigateToOtp = event.phoneNumber
+                        }
+                        is AuthViewModel.UiEvent.NavigateToResetPassword -> {
+                            navigateToResetPassword = true
+                        }
+                        is AuthViewModel.UiEvent.NavigateToHome -> {
+                            navController.navigate(Screen.Main.route) {
+                                popUpTo(Screen.ForgotPassword.route) { inclusive = true }
+                            }
+                        }
+                        is AuthViewModel.UiEvent.ShowError -> {
+                            Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                        }
+                        is AuthViewModel.UiEvent.ShowMessage -> {
+                            Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                        }
+                        else -> {}
+                    }
+                }
+            }
+
             ForgotPasswordNavigation(
                 onBackToLogin = {
                     navController.popBackStack()
@@ -110,51 +187,145 @@ fun NavGraph(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.ForgotPassword.route) { inclusive = true }
                     }
-                }
+                },
+                onSendResetEmail = { email ->
+                    viewModel.resetPassword(email)
+                },
+                onSendOtp = { phone, activity ->
+                    viewModel.sendOtp(phone, activity)
+                },
+                onVerifyOtp = { otp ->
+                    viewModel.verifyOtp(otp)
+                },
+                isLoading = viewModel.isLoading.value,
+                navigateToCongratulations = navigateToCongratulations,
+                navigateToOtp = navigateToOtp,
+                navigateToResetPassword = navigateToResetPassword
             )
         }
         composable(Screen.Signup.route) {
+            val viewModel: AuthViewModel = hiltViewModel()
+            val activity = context as Activity
+
+            LaunchedEffect(key1 = true) {
+                viewModel.eventFlow.collectLatest { event ->
+                    when (event) {
+                        is AuthViewModel.UiEvent.NavigateToOtp -> {
+                            navController.navigate(Screen.SignupOtp.route)
+                        }
+                        is AuthViewModel.UiEvent.NavigateToOnboarding -> {
+                            navController.navigate(Screen.SelectCountry.route)
+                        }
+                        is AuthViewModel.UiEvent.ShowError -> {
+                            val message = event.message
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        }
+                        else -> {}
+                    }
+                }
+            }
+
             SignupScreen(
-                onSignupClick = { _, _ ->
-                    navController.navigate(Screen.SelectCountry.route)
+                onSignupClick = { identifier, password, rememberMe ->
+                    if (identifier.contains("@")) {
+                        viewModel.signup(identifier, password, rememberMe)
+                    } else {
+                        viewModel.handlePhoneSignup(identifier, activity)
+                    }
                 },
                 onLoginClick = {
                     navController.navigate(Screen.Login.route)
+                },
+                isLoading = viewModel.isLoading.value
+            )
+        }
+        composable(Screen.SignupOtp.route) {
+            val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
+            val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
+            
+            LaunchedEffect(key1 = true) {
+                viewModel.eventFlow.collectLatest { event ->
+                    if (event is AuthViewModel.UiEvent.NavigateToOnboarding) {
+                        navController.navigate(Screen.SelectCountry.route)
+                    } else if (event is AuthViewModel.UiEvent.ShowError) {
+                        Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                    }
                 }
+            }
+
+            com.sharjeel.newsapp.ui.screens.auth.OtpVerificationScreen(
+                onBackClick = { navController.popBackStack() },
+                onVerifyClick = { otp ->
+                    viewModel.verifySignupOtp(otp)
+                },
+                isLoading = viewModel.isLoading.value,
+                phoneNumber = viewModel.signupUser.phoneNumber
             )
         }
         composable(Screen.SelectCountry.route) {
+            val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
+            val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
             SelectCountryScreen(
                 onBackClick = { navController.popBackStack() },
-                onNextClick = { _ ->
+                onNextClick = { country ->
+                    viewModel.updateSignupData(country = country)
                     navController.navigate(Screen.SelectTopics.route)
                 }
             )
         }
         composable(Screen.SelectTopics.route) {
+            val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
+            val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
             SelectTopicsScreen(
                 onBackClick = { navController.popBackStack() },
-                onNextClick = { _ ->
+                onNextClick = { topics ->
+                    viewModel.updateSignupData(topics = topics)
                     navController.navigate(Screen.SelectSources.route)
                 }
             )
         }
         composable(Screen.SelectSources.route) {
+            val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
+            val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
             SelectSourcesScreen(
                 onBackClick = { navController.popBackStack() },
-                onNextClick = { _ ->
+                onNextClick = { sources ->
+                    viewModel.updateSignupData(sources = sources)
                     navController.navigate(Screen.FillProfile.route)
                 }
             )
         }
         composable(Screen.FillProfile.route) {
-            FillProfileScreen(
-                onBackClick = { navController.popBackStack() },
-                onNextClick = { _, _, _, _ ->
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Signup.route) { inclusive = true }
+            val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
+            val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
+            
+            LaunchedEffect(key1 = true) {
+                viewModel.eventFlow.collectLatest { event ->
+                    if (event is AuthViewModel.UiEvent.NavigateToHome) {
+                        navController.navigate(Screen.Main.route) {
+                            popUpTo(Screen.Signup.route) { inclusive = true }
+                        }
+                    } else if (event is AuthViewModel.UiEvent.ShowError) {
+                        Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                     }
                 }
+            }
+
+            FillProfileScreen(
+                onBackClick = { navController.popBackStack() },
+                onNextClick = { username, fullName, email, phoneNumber, bio, website ->
+                    viewModel.updateSignupData(
+                        username = username,
+                        fullName = fullName,
+                        email = email,
+                        phoneNumber = phoneNumber,
+                        bio = bio,
+                        website = website
+                    )
+                    viewModel.completeSignup()
+                },
+                initialEmail = viewModel.signupUser.email,
+                initialPhone = viewModel.signupUser.phoneNumber
             )
         }
         composable(Screen.Main.route) {
@@ -185,6 +356,11 @@ fun NavGraph(
                 },
                 onCreateNewsClick = {
                     navController.navigate(Screen.CreateNews.route)
+                },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Main.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -273,18 +449,22 @@ fun NavGraph(
             )
         }
         composable(Screen.Settings.route) {
+            val viewModel: ProfileViewModel = hiltViewModel()
             SettingsScreen(
                 onBackClick = {
                     navController.popBackStack()
-                }
+                },
+                onLogoutClick = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Main.route) { inclusive = true }
+                    }
+                },
+                viewModel = viewModel
             )
         }
         composable(Screen.EditProfile.route) {
             EditProfileScreen(
                 onBackClick = {
-                    navController.popBackStack()
-                },
-                onSaveClick = {
                     navController.popBackStack()
                 }
             )

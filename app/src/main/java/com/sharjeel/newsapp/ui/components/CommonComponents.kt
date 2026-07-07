@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,6 +34,8 @@ fun AkhbarButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary
 ) {
@@ -41,19 +44,30 @@ fun AkhbarButton(
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp),
+        enabled = enabled && !isLoading,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor
+            contentColor = contentColor,
+            disabledContainerColor = containerColor.copy(alpha = 0.5f),
+            disabledContentColor = contentColor.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(6.dp)
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = contentColor,
+                strokeWidth = 2.dp
             )
-        )
+        } else {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            )
+        }
     }
 }
 

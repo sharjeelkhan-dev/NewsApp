@@ -3,41 +3,64 @@ package com.sharjeel.newsapp.ui.screens.auth
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.AkhbarButton
+import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 
 @Composable
 fun OtpVerificationScreen(
     onBackClick: () -> Unit,
-    onVerifyClick: (String) -> Unit
+    onVerifyClick: (String) -> Unit,
+    isLoading: Boolean = false,
+    phoneNumber: String = ""
 ) {
     var otp by remember { mutableStateOf("") }
-    val isError = otp == "1234" // Mock error state for visual match
+    val isError = false // Reset error logic or connect to state
 
     AppScaffold(
         topBar = {
             IconButton(
                 onClick = onBackClick,
-                modifier = Modifier.padding(8.dp).offset(y = 24.dp)
+                modifier = Modifier
+                    .padding(8.dp)
+                    .offset(y = 24.dp)
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack, 
+                    Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -47,12 +70,14 @@ fun OtpVerificationScreen(
             Column {
                 AkhbarButton(
                     text = "Verify",
-                    onClick = { onVerifyClick(otp) },
-                    modifier = Modifier.padding(24.dp)
+                    onClick = { if (otp.length == 6) onVerifyClick(otp) },
+                    modifier = Modifier.padding(24.dp),
+                    isLoading = isLoading,
+                    enabled = otp.length == 6
                 )
                 CustomKeypad(
                     onKeyClick = { key ->
-                        if (otp.length < 4) otp += key
+                        if (otp.length < 6) otp += key
                     },
                     onDeleteClick = {
                         if (otp.isNotEmpty()) otp = otp.dropLast(1)
@@ -65,11 +90,12 @@ fun OtpVerificationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             Text(
                 text = "OTP Verification",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -78,11 +104,11 @@ fun OtpVerificationScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
-                text = "Enter the OTP sent to +67-1234-5678-9",
+                text = "Enter the OTP sent to $phoneNumber",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 16.sp
@@ -94,12 +120,13 @@ fun OtpVerificationScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
             ) {
-                repeat(4) { index ->
+                repeat(6) { index ->
                     OtpBox(
                         value = if (index < otp.length) otp[index].toString() else "",
-                        isError = isError
+                        isError = isError,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -128,13 +155,16 @@ fun OtpVerificationScreen(
 }
 
 @Composable
-fun OtpBox(value: String, isError: Boolean) {
+fun OtpBox(value: String, isError: Boolean, modifier: Modifier = Modifier) {
     Surface(
-        modifier = Modifier.size(64.dp),
+        modifier = modifier
+            .height(56.dp)
+            .aspectRatio(1f),
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(
             1.dp,
-            if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+            if (isError) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.outline
         ),
         color = if (isError) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
     ) {
@@ -143,7 +173,7 @@ fun OtpBox(value: String, isError: Boolean) {
                 text = value,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     color = if (isError) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface
                 )
@@ -160,7 +190,8 @@ fun CustomKeypad(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(MaterialTheme.colorScheme.surfaceVariant
+                .copy(alpha = 0.5f))
             .padding(vertical = 12.dp)
     ) {
         val keys = listOf(
@@ -176,7 +207,7 @@ fun CustomKeypad(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(64.dp)
+                            .height(60.dp)
                             .clickable(enabled = key.isNotEmpty()) {
                                 if (key == "DEL") onDeleteClick() else onKeyClick(key)
                             },
@@ -184,7 +215,7 @@ fun CustomKeypad(
                     ) {
                         if (key == "DEL") {
                             Icon(
-                                Icons.Default.Backspace, 
+                                Icons.AutoMirrored.Filled.Backspace,
                                 contentDescription = "Delete",
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
@@ -193,7 +224,7 @@ fun CustomKeypad(
                                 text = key,
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Normal,
-                                    fontSize = 24.sp,
+                                    fontSize = 22.sp,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
@@ -208,14 +239,6 @@ fun CustomKeypad(
 @Preview(showBackground = true)
 @Composable
 fun OtpVerificationScreenPreview() {
-    NewsAppTheme {
-        OtpVerificationScreen(onBackClick = {}, onVerifyClick = {})
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun OtpVerificationScreenDarkPreview() {
     NewsAppTheme {
         OtpVerificationScreen(onBackClick = {}, onVerifyClick = {})
     }

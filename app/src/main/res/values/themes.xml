@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.NewsApp" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Akhbar" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowActivityTransitions">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

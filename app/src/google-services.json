@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "653227771496",
+    "project_id": "newsapp-fb1cb",
+    "storage_bucket": "newsapp-fb1cb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:653227771496:android:ccdc3f08becfa2327e1ddd",
+        "android_client_info": {
+          "package_name": "com.sharjeel.newsapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "653227771496-r43l2eja5rhr0egprhd8atchnui95em8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sharjeel.newsapp",
+            "certificate_hash": "d453deb501783678a458d2d6b18b28fb3c9db25c"
+          }
+        },
+        {
+          "client_id": "653227771496-ina1rq6rlaq1nip8nm0951sonta2jc53.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrEZ_AILy3xq53svJj9sPk9m5hUNKNwP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "653227771496-ina1rq6rlaq1nip8nm0951sonta2jc53.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -18,29 +18,43 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AkhbarButton
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.SocialButton
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
     NewsAppTheme {
         LoginScreen(
-            onLoginClick = { _, _ -> },
+            onLoginClick = { _, _, _ -> },
             onSignupClick = {},
             onForgotPasswordClick = {}
         )
@@ -52,7 +66,7 @@ fun LoginScreenPreview() {
 fun LoginScreenDarkPreview() {
     NewsAppTheme {
         LoginScreen(
-            onLoginClick = { _, _ -> },
+            onLoginClick = { _, _, _ -> },
             onSignupClick = {},
             onForgotPasswordClick = {}
         )
@@ -61,14 +75,81 @@ fun LoginScreenDarkPreview() {
 
 @Composable
 fun LoginScreen(
-    onLoginClick: (String, String) -> Unit,
+    onLoginClick: (String, String, Boolean) -> Unit,
     onSignupClick: () -> Unit,
-    onForgotPasswordClick: () -> Unit
+    onForgotPasswordClick: () -> Unit,
+    onGoogleSignInClick: (String) -> Unit = {},
+    onFacebookSignInClick: (String) -> Unit = {},
+    isLoading: Boolean = false,
+    initialEmail: String = "",
+    initialRememberMe: Boolean = false
 ) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(initialEmail) }
     var password by remember { mutableStateOf("") }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(initialRememberMe) }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    // Pre-create CredentialManager
+    val credentialManager = remember { CredentialManager.create(context) }
+    val callbackManager = remember { CallbackManager.Factory.create() }
+
+    // Re-add Facebook callback cleanup (accidentally removed)
+    DisposableEffect(Unit) {
+        LoginManager.getInstance().registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
+            override fun onSuccess(result: LoginResult) {
+                onFacebookSignInClick(result.accessToken.token)
+            }
+            override fun onCancel() {}
+            override fun onError(error: FacebookException) {}
+        })
+        onDispose {
+            LoginManager.getInstance().unregisterCallback(callbackManager)
+        }
+    }
+
+    // Prepare Google ID Option ahead of time
+    val serverclientid = "653227771496-ina1rq6rlaq1nip8nm0951sonta2jc53.apps.googleusercontent.com"
+    val googleIdOption = remember {
+        GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(serverclientid)
+            .setAutoSelectEnabled(true)
+            .build()
+    }
+
+    val handleGoogleSignIn = {
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        coroutineScope.launch {
+            try {
+                val result = credentialManager.getCredential(
+                    request = request,
+                    context = context
+                )
+                val credential = result.credential
+                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    onGoogleSignInClick(googleIdTokenCredential.idToken)
+                }
+            } catch (_: GetCredentialException) {
+                // Log error
+            }
+        }
+    }
+
+    val handleFacebookSignIn = {
+        LoginManager.getInstance().logInWithReadPermissions(
+            context as androidx.activity.ComponentActivity,
+            callbackManager,
+            listOf("email", "public_profile")
+        )
+    }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -108,18 +189,28 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(48.dp))
             AkhbarTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = "Username*"
+                value = email,
+                onValueChange = { 
+                    email = it
+                    if (emailError != null) emailError = null
+                },
+                label = "Email or Phone Number*",
+                isError = emailError != null,
+                errorMessage = emailError
             )
             Spacer(modifier = Modifier.height(16.dp))
             AkhbarTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { 
+                    password = it
+                    if (passwordError != null) passwordError = null
+                },
                 label = "Password*",
                 isPassword = true,
                 passwordVisible = passwordVisible,
-                onPasswordToggle = { passwordVisible = !passwordVisible }
+                onPasswordToggle = { passwordVisible = !passwordVisible },
+                isError = passwordError != null,
+                errorMessage = passwordError
             )
             Row(
                 modifier = Modifier.fillMaxWidth().height(35.dp),
@@ -149,7 +240,15 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(13.dp))
             AkhbarButton(
                 text = "Login",
-                onClick = { onLoginClick(username, password) }
+                isLoading = isLoading,
+                onClick = { 
+                    emailError = if (email.isEmpty()) "Please enter your email first" else null
+                    passwordError = if (password.isEmpty()) "Please enter your password" else null
+                    
+                    if (emailError == null && passwordError == null) {
+                        onLoginClick(email, password, rememberMe)
+                    }
+                }
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -167,13 +266,13 @@ fun LoginScreen(
                 SocialButton(
                     icon = R.drawable.facebook,
                     text = "Facebook",
-                    onClick = {},
+                    onClick = { handleFacebookSignIn() },
                     modifier = Modifier.weight(1f)
                 )
                 SocialButton(
                     icon = R.drawable.google,
                     text = "Google",
-                    onClick = {},
+                    onClick = { handleGoogleSignIn() },
                     modifier = Modifier.weight(1f)
                 )
             }

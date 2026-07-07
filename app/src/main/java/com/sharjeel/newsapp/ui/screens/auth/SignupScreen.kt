@@ -18,40 +18,43 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AkhbarButton
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.SocialButton
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
 @Composable
 fun SignupScreenPreview() {
     NewsAppTheme {
         SignupScreen(
-            onSignupClick = { _, _ -> },
-            onLoginClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun SignupScreenDarkPreview() {
-    NewsAppTheme {
-        SignupScreen(
-            onSignupClick = { _, _ -> },
+            onSignupClick = { _, _, _ -> },
             onLoginClick = {}
         )
     }
@@ -59,17 +62,72 @@ fun SignupScreenDarkPreview() {
 
 @Composable
 fun SignupScreen(
-    onSignupClick: (String, String) -> Unit,
-    onLoginClick: () -> Unit
+    onSignupClick: (String, String, Boolean) -> Unit,
+    onLoginClick: () -> Unit,
+    onGoogleSignInClick: (String) -> Unit = {},
+    onFacebookSignInClick: (String) -> Unit = {},
+    isLoading: Boolean = false
 ) {
-    var username by remember { mutableStateOf("") }
+    var identifier by remember { mutableStateOf("") } // Email or Phone
     var password by remember { mutableStateOf("") }
+    var identifierError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
-    AppScaffold(
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = remember { CredentialManager.create(context) }
+    val callbackManager = remember { CallbackManager.Factory.create() }
+
+    DisposableEffect(Unit) {
+        LoginManager.getInstance().registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
+            override fun onSuccess(result: LoginResult) {
+                onFacebookSignInClick(result.accessToken.token)
+            }
+            override fun onCancel() {}
+            override fun onError(error: FacebookException) {}
+        })
+        onDispose {
+            LoginManager.getInstance().unregisterCallback(callbackManager)
+        }
+    }
+
+    val SERVER_CLIENT_ID = "653227771496-your_actual_client_id.apps.googleusercontent.com"
+    val googleIdOption = remember {
+        GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(SERVER_CLIENT_ID)
+            .setAutoSelectEnabled(true)
+            .build()
+    }
+
+    val handleGoogleSignIn = {
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        coroutineScope.launch {
+            try {
+                val result = credentialManager.getCredential(request = request, context = context)
+                val credential = result.credential
+                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    onGoogleSignInClick(googleIdTokenCredential.idToken)
+                }
+            } catch (_: GetCredentialException) {}
+        }
+    }
+
+    val handleFacebookSignIn = {
+        LoginManager.getInstance().logInWithReadPermissions(
+            context as androidx.activity.ComponentActivity,
+            callbackManager,
+            listOf("email", "public_profile")
+        )
+    }
+
+    AppScaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,111 +136,70 @@ fun SignupScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(40.dp))
-            
-            Text(
-                text = "Hello!",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 48.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            )
-            
+            Text(text = "Hello!", style = MaterialTheme.typography.displayLarge.copy(fontSize = 48.sp, color = MaterialTheme.colorScheme.primary))
             Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Signup to get Started",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 30.sp
-                )
-            )
-
+            Text(text = "Signup to get Started", style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 30.sp))
             Spacer(modifier = Modifier.height(48.dp))
 
             AkhbarTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = "Username*"
+                value = identifier,
+                onValueChange = { 
+                    identifier = it
+                    if (identifierError != null) identifierError = null
+                },
+                label = "Email or Phone Number*",
+                isError = identifierError != null,
+                errorMessage = identifierError
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             AkhbarTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { 
+                    password = it
+                    if (passwordError != null) passwordError = null
+                },
                 label = "Password*",
                 isPassword = true,
                 passwordVisible = passwordVisible,
-                onPasswordToggle = { passwordVisible = !passwordVisible }
+                onPasswordToggle = { passwordVisible = !passwordVisible },
+                isError = passwordError != null,
+                errorMessage = passwordError
             )
-            Row(
-                modifier = Modifier.fillMaxWidth().height(35.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = rememberMe,
-                    onCheckedChange = { rememberMe = it },
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.offset(x = (-12).dp)
-                )
-                Text(
-                    text = "Remember me",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                    modifier = Modifier.offset(x = (-19).dp)
-                )
+            
+            Row(modifier = Modifier.fillMaxWidth().height(35.dp), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = rememberMe, onCheckedChange = { rememberMe = it }, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary), modifier = Modifier.offset(x = (-12).dp))
+                Text(text = "Remember me", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.offset(x = (-19).dp))
             }
 
             Spacer(modifier = Modifier.height(13.dp))
 
             AkhbarButton(
                 text = "Signup",
-                onClick = { onSignupClick(username, password) }
+                isLoading = isLoading,
+                onClick = { 
+                    identifierError = if (identifier.isEmpty()) "Please enter email or phone number" else null
+                    passwordError = if (password.isEmpty()) "Please enter password" else null
+                    if (identifierError == null && passwordError == null) {
+                        onSignupClick(identifier, password, rememberMe)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "or continue with",
-                modifier = Modifier.align(Alignment.CenterHorizontally).width(114.dp).height(21.dp),
-                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-            )
-
+            Text(text = "or continue with", modifier = Modifier.align(Alignment.CenterHorizontally).width(114.dp).height(21.dp), style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant))
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SocialButton(
-                    icon = R.drawable.facebook,
-                    text = "Facebook",
-                    onClick = {},
-                    modifier = Modifier.weight(1f)
-                )
-                SocialButton(
-                    icon = R.drawable.google,
-                    text = "Google",
-                    onClick = {},
-                    modifier = Modifier.weight(1f)
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                SocialButton(icon = R.drawable.facebook, text = "Facebook", onClick = { handleFacebookSignIn() }, modifier = Modifier.weight(1f))
+                SocialButton(icon = R.drawable.google, text = "Google", onClick = { handleGoogleSignIn() }, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(15.dp))
-
-            Row(
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = "Already have an account ? ",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                )
-                Text(
-                    text = "Login",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.clickable { onLoginClick() }
-                )
+            Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text(text = "Already have an account ? ", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant))
+                Text(text = "Login", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.clickable { onLoginClick() })
             }
         }
     }

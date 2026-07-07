@@ -2,14 +2,38 @@ package com.sharjeel.newsapp.ui.screens.auth
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Message
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -17,41 +41,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.components.AkhbarButton
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
+import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 
 @Composable
 fun ForgotPasswordScreen(
     onBackClick: () -> Unit,
-    onSubmitClick: (String) -> Unit
+    onSubmitClick: (String, String) -> Unit, // value, method
+    isLoading: Boolean = false
 ) {
     var step by remember { mutableIntStateOf(1) }
     var selectedMethod by remember { mutableStateOf("Email") }
     var inputValue by remember { mutableStateOf("") }
+    var inputError by remember { mutableStateOf<String?>(null) }
 
     AppScaffold(
         topBar = {
             IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.padding(8.dp).offset(y = 24.dp)
+                onClick = {
+                    if (step == 2) step = 1 else onBackClick()
+                },
+                modifier = Modifier
+                    .padding(8.dp)
+                    .offset(y = 24.dp)
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack, 
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         },
         bottomBar = {
-            AkhbarButton(
-                text = "Submit",
-                onClick = {
-                    if (step == 1) step = 2 else onSubmitClick(inputValue)
-                },
-                modifier = Modifier.padding(24.dp)
-            )
+            Box(modifier = Modifier.padding(24.dp)) {
+                AkhbarButton(
+                    text = if (step == 1) "Next" else "Submit",
+                    isLoading = isLoading,
+                    onClick = {
+                        if (step == 1) {
+                            step = 2
+                        } else {
+                            if (inputValue.isEmpty()) {
+                                inputError = if (selectedMethod == "Email")
+                                    "Please enter your email first"
+                                else
+                                    "Please enter your phone number first"
+                            } else {
+                                onSubmitClick(inputValue, selectedMethod)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -59,9 +103,10 @@ fun ForgotPasswordScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Text(
                 text = "Forgot\nPassword ?",
                 style = MaterialTheme.typography.displayMedium.copy(
@@ -71,13 +116,13 @@ fun ForgotPasswordScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
-                text = if (step == 1) 
+                text = if (step == 1)
                     "Don’t worry! It happens. Please select the email or number associated with your account."
-                else 
+                else
                     "Don’t worry! It happens. Please enter the address associated with your account.",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -96,22 +141,27 @@ fun ForgotPasswordScreen(
                     isSelected = selectedMethod == "Email",
                     onClick = { selectedMethod = "Email" }
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 ForgotPasswordMethodItem(
                     icon = Icons.Default.Message,
                     title = "via SMS:",
-                    value = "+62-8421-4512-2531",
+                    value = "+67-1234-5678-9",
                     isSelected = selectedMethod == "SMS",
                     onClick = { selectedMethod = "SMS" }
                 )
             } else {
                 AkhbarTextField(
                     value = inputValue,
-                    onValueChange = { inputValue = it },
-                    label = if (selectedMethod == "Email") "Email ID / Mobile number" else "Mobile Number*",
-                    placeholder = ""
+                    onValueChange = {
+                        inputValue = it
+                        if (inputError != null) inputError = null
+                    },
+                    label = if (selectedMethod == "Email") "Email Address*" else "Phone Number*",
+                    placeholder = if (selectedMethod == "Email") "hello@gmail.com" else "+92 312 3456789",
+                    isError = inputError != null,
+                    errorMessage = inputError
                 )
             }
         }
@@ -151,9 +201,9 @@ fun ForgotPasswordMethodItem(
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -171,7 +221,7 @@ fun ForgotPasswordMethodItem(
                     )
                 )
             }
-            
+
             RadioButton(
                 selected = isSelected,
                 onClick = onClick,
@@ -188,14 +238,6 @@ fun ForgotPasswordMethodItem(
 @Composable
 fun ForgotPasswordScreenPreview() {
     NewsAppTheme {
-        ForgotPasswordScreen(onBackClick = {}, onSubmitClick = {})
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun ForgotPasswordScreenDarkPreview() {
-    NewsAppTheme {
-        ForgotPasswordScreen(onBackClick = {}, onSubmitClick = {})
+        ForgotPasswordScreen(onBackClick = {}, onSubmitClick = { _, _ -> })
     }
 }

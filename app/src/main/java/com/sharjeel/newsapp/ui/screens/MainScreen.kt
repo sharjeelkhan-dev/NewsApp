@@ -68,7 +68,8 @@ fun MainScreen(
     onSettingsClick: () -> Unit,
     onEditProfileClick: () -> Unit,
     onNewsItemClick: () -> Unit,
-    onCreateNewsClick: () -> Unit
+    onCreateNewsClick: () -> Unit,
+    onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
 
@@ -110,6 +111,7 @@ fun MainScreen(
                 ProfileScreen(
                     onSettingsClick = onSettingsClick,
                     onEditProfileClick = onEditProfileClick,
+                    onLogoutClick = onLogout,
                     onNewsItemClick = onNewsItemClick,
                     onCreateNewsClick = onCreateNewsClick
                 )
@@ -181,4 +183,3 @@ fun BottomNavigationPreview() {
         BottomNavigation(navController = rememberNavController())
     }
 }
-

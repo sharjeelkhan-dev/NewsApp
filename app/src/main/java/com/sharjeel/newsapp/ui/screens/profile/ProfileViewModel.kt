@@ -1,0 +1,93 @@
+package com.sharjeel.newsapp.ui.screens.profile
+
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.sharjeel.newsapp.domain.model.User
+import com.sharjeel.newsapp.domain.repository.AuthRepository
+import com.sharjeel.newsapp.util.DataStoreManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val repository: AuthRepository,
+    private val dataStoreManager: DataStoreManager
+) : ViewModel() {
+
+    private val _userState = mutableStateOf<User?>(null)
+    val userState: State<User?> = _userState
+
+    private val _isLoading = mutableStateOf(false)
+    val isLoading: State<Boolean> = _isLoading
+
+    private val _eventFlow = MutableSharedFlow<UiEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
+
+    init {
+        loadUserProfile()
+    }
+
+    fun loadUserProfile() {
+        viewModelScope.launch {
+            val uid = repository.currentUser?.uid
+            if (uid != null) {
+                _isLoading.value = true
+                repository.getUserProfile(uid).onSuccess { user ->
+                    _userState.value = user
+                }.onFailure { e ->
+                    _eventFlow.emit(UiEvent.ShowError(e.message ?: "Failed to load profile"))
+                }
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun updateProfile(
+        username: String,
+        fullName: String,
+        email: String,
+        phoneNumber: String,
+        bio: String,
+        website: String
+    ) {
+        viewModelScope.launch {
+            val currentUser = _userState.value ?: return@launch
+            val updatedUser = currentUser.copy(
+                username = username,
+                fullName = fullName,
+                email = email,
+                phoneNumber = phoneNumber,
+                bio = bio,
+                website = website
+            )
+            
+            _isLoading.value = true
+            repository.saveUserProfile(updatedUser).onSuccess {
+                _userState.value = updatedUser
+                _eventFlow.emit(UiEvent.ProfileUpdated)
+            }.onFailure { e ->
+                _eventFlow.emit(UiEvent.ShowError(e.message ?: "Failed to update profile"))
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            repository.logout()
+            dataStoreManager.saveLoggedIn(false)
+            _eventFlow.emit(UiEvent.LoggedOut)
+        }
+    }
+
+    sealed class UiEvent {
+        data class ShowError(val message: String) : UiEvent()
+        object ProfileUpdated : UiEvent()
+        object LoggedOut : UiEvent()
+    }
+}

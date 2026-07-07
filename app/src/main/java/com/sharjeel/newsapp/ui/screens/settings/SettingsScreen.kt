@@ -1,5 +1,7 @@
 package com.sharjeel.newsapp.ui.screens.settings
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,22 +37,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.screens.profile.ProfileViewModel
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
+    viewModel: ProfileViewModel? = hiltViewModel()
 ) {
     var isDarkMode by remember { mutableStateOf(false) }
+
+    LaunchedEffect(key1 = true) {
+        viewModel?.eventFlow?.collectLatest { event ->
+            if (event is ProfileViewModel.UiEvent.LoggedOut) {
+                onLogoutClick()
+            }
+        }
+    }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -143,7 +160,7 @@ fun SettingsScreen(
             SettingsItem(
                 iconPainter = painterResource(id = R.drawable.logout_icon),
                 title = "Logout",
-                onClick = { /* TODO: Logout Logic */ }
+                onClick = { viewModel?.logout() }
             )
         }
     }
@@ -157,11 +174,11 @@ fun SettingsItem(
     iconPainter: androidx.compose.ui.graphics.painter.Painter? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(56.dp)
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -196,18 +213,16 @@ fun SettingsItem(
                 )
             )
         }
-        
+
         if (trailing != null) {
             trailing()
         } else {
-            IconButton(onClick = onClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -216,6 +231,9 @@ fun SettingsItem(
 @Composable
 fun SettingsScreenPreview() {
     NewsAppTheme {
-        SettingsScreen(onBackClick = {})
+        SettingsScreen(
+            onBackClick = {},
+            viewModel = null
+        )
     }
 }

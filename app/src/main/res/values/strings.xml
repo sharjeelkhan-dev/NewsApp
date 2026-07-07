@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Akhbar</string>
+    <string name="facebook_app_id">904429452261471</string>
+    <string name="fb_login_protocol_scheme">fb904429452261471</string>
+    <string name="facebook_client_token">e40a06b0dfe770107d24467f378abdad</string>
 </resources>

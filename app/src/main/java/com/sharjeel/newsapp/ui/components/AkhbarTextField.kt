@@ -34,7 +34,8 @@ fun AkhbarTextField(
     errorMessage: String? = null,
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
-    onPasswordToggle: (() -> Unit)? = null
+    onPasswordToggle: (() -> Unit)? = null,
+    enabled: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -50,6 +51,7 @@ fun AkhbarTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
+            enabled = enabled,
             placeholder = {
                 Text(
                     text = placeholder,

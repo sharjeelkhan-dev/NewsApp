@@ -1,5 +1,6 @@
 package com.sharjeel.newsapp.ui.screens.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -46,24 +50,59 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
     onBackClick: () -> Unit,
-    onSaveClick: () -> Unit
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val user by viewModel.userState
+    val isLoading by viewModel.isLoading
+    val context = LocalContext.current
+
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
+
+    // Initialize fields when user data is loaded
+    LaunchedEffect(user) {
+        user?.let {
+            username = it.username
+            fullName = it.fullName
+            email = it.email
+            phoneNumber = it.phoneNumber
+            bio = it.bio
+            website = it.website
+        }
+    }
+
+    LaunchedEffect(key1 = true) {
+        viewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                is ProfileViewModel.UiEvent.ProfileUpdated -> {
+                    Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                    onBackClick()
+                }
+                is ProfileViewModel.UiEvent.ShowError -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
+
+                else -> {}
+            }
+        }
+    }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -89,12 +128,29 @@ fun EditProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onSaveClick) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Save",
-                            tint = MaterialTheme.colorScheme.onSurface
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = BluePrimary,
+                            strokeWidth = 2.dp
                         )
+                    } else {
+                        IconButton(onClick = {
+                            viewModel.updateProfile(
+                                username = username,
+                                fullName = fullName,
+                                email = email,
+                                phoneNumber = phoneNumber,
+                                bio = bio,
+                                website = website
+                            )
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Save",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -127,12 +183,21 @@ fun EditProfileScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_avatar),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (user?.profileImageUrl?.isNotEmpty() == true) {
+                        AsyncImage(
+                            model = user?.profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_avatar),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
                 
                 // Camera Icon Overlay
@@ -257,8 +322,7 @@ fun AkhbarTextFieldNoLabel(
 fun EditProfileScreenPreview() {
     NewsAppTheme {
         EditProfileScreen(
-            onBackClick = {},
-            onSaveClick = {}
+            onBackClick = {}
         )
     }
 }
