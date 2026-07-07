@@ -1,7 +1,10 @@
 package com.sharjeel.newsapp.ui.screens.onboarding
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AkhbarButton
 import com.sharjeel.newsapp.ui.components.AkhbarTextField
@@ -54,6 +58,7 @@ fun FillProfileScreenPreview() {
         FillProfileScreen(
             onBackClick = {},
             onNextClick = { _, _, _, _, _, _ -> },
+            onImagePick = {},
             initialEmail = "hello@gmail.com",
             initialPhone = "+92 123 456789"
         )
@@ -65,8 +70,11 @@ fun FillProfileScreenPreview() {
 fun FillProfileScreen(
     onBackClick: () -> Unit,
     onNextClick: (String, String, String, String, String, String) -> Unit,
+    onImagePick: (android.net.Uri) -> Unit,
     initialEmail: String = "",
-    initialPhone: String = ""
+    initialPhone: String = "",
+    profileImageUrl: String = "",
+    isLoading: Boolean = false
 ) {
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
@@ -77,6 +85,12 @@ fun FillProfileScreen(
     
     var emailError by remember { mutableStateOf<String?>(null) }
     var phoneError by remember { mutableStateOf<String?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { onImagePick(it) }
+    }
 
     AppScaffold(
         topBar = {
@@ -112,6 +126,7 @@ fun FillProfileScreen(
                         onNextClick(username, fullName, email, phoneNumber, bio, website) 
                     }
                 },
+                isLoading = isLoading,
                 modifier = Modifier
                     .padding(24.dp)
                     .fillMaxWidth()
@@ -139,20 +154,49 @@ fun FillProfileScreen(
                     modifier = Modifier
                         .size(140.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFEEF1F4)),
+                        .background(Color(0xFFEEF1F4))
+                        .clickable { galleryLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_avatar),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(BluePrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val letter = (fullName.takeIf { it.isNotEmpty() } ?: username.takeIf { it.isNotEmpty() } ?: "U")
+                                .take(1).uppercase()
+                            Text(
+                                text = letter,
+                                style = MaterialTheme.typography.displayLarge.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 48.sp
+                                )
+                            )
+                        }
+                    }
+
+                    // Agar upload ho raha ho toh yahan spinner dikhayein
+                    if (isLoading) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(40.dp),
+                            color = BluePrimary
+                        )
+                    }
                 }
 
                 // Camera Icon Overlay
                 Surface(
-                    onClick = { /* TODO: Change Photo */ },
+                    onClick = { galleryLauncher.launch("image/*") },
                     shape = CircleShape,
                     color = BluePrimary,
                     modifier = Modifier

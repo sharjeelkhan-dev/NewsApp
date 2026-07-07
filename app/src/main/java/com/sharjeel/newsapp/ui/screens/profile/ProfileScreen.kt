@@ -2,7 +2,6 @@ package com.sharjeel.newsapp.ui.screens.profile
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,12 +64,12 @@ fun ProfileScreen(
     onSettingsClick: () -> Unit,
     onEditProfileClick: () -> Unit,
     onLogoutClick: () -> Unit = {},
-    onNewsItemClick: () -> Unit = {},
+    onNewsItemClick: (String) -> Unit = { _ -> },
     onCreateNewsClick: () -> Unit = {},
-    viewModel: ProfileViewModel? = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val user by viewModel?.userState ?: remember { mutableStateOf(null) }
-    val isLoading by viewModel?.isLoading ?: remember { mutableStateOf(false) }
+    val user by viewModel.userState
+    val isLoading by viewModel.isLoading
     val uriHandler = LocalUriHandler.current
 
     var selectedTab by remember { mutableIntStateOf(1) }
@@ -105,18 +103,21 @@ fun ProfileScreen(
             }
         }
     ) { padding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = BluePrimary)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 24.dp)
-            ) {
-
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp)
+        ) {
+            if (isLoading && user == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = BluePrimary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Loading Profile...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // TOP HEADER
@@ -170,12 +171,22 @@ fun ProfileScreen(
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_avatar),
-                                    contentDescription = "Default Avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(BluePrimary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val letter = (user?.fullName ?: user?.username ?: "G").take(1).uppercase()
+                                    Text(
+                                        text = letter,
+                                        style = MaterialTheme.typography.displayLarge.copy(
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 40.sp
+                                        )
+                                    )
+                                }
                             }
                         }
 
@@ -352,12 +363,13 @@ fun ProfileScreen(
                              NewsItem(
                                  category = sampleCategories[index],
                                  title = sampleTitles[index],
-                                 publisher = user?.fullName ?: "Me",
+                                 publisher = user?.fullName ?: user?.username ?: "Me",
                                  time = "Just now",
                                  image = sampleImages[index],
-                                 publisherIcon = R.drawable.ic_avatar,
+                                 publisherIcon = if (user?.profileImageUrl?.isNotEmpty() == true) null else R.drawable.ic_avatar,
+                                 profileImageUrl = user?.profileImageUrl ?: "",
                                  onAuthorClick = { },
-                                 onItemClick = onNewsItemClick
+                                 onItemClick = { onNewsItemClick("") }
                              )
                         }
                     }
@@ -396,10 +408,6 @@ fun ProfileStat(number: String, label: String) {
 @Composable
 fun ProfileScreenPreview() {
     NewsAppTheme {
-        ProfileScreen(
-            onSettingsClick = {},
-            onEditProfileClick = {},
-            viewModel = null
-        )
+        // Preview handling
     }
 }

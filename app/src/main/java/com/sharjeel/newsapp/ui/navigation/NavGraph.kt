@@ -58,7 +58,9 @@ sealed class Screen(val route: String) {
     data object Notification : Screen("notification")
     data object LatestNews : Screen("latest_news")
     data object Search : Screen("search")
-    data object AuthorProfile : Screen("author_profile")
+    data object AuthorProfile : Screen("author_profile/{sourceId}") {
+        fun createRoute(sourceId: String) = "author_profile/$sourceId"
+    }
     data object Settings : Screen("settings")
     data object EditProfile : Screen("edit_profile")
     data object NewsDetail : Screen("news_detail")
@@ -269,6 +271,7 @@ fun NavGraph(
                 onBackClick = { navController.popBackStack() },
                 onNextClick = { country ->
                     viewModel.updateSignupData(country = country)
+                    viewModel.saveSignupProgress()
                     navController.navigate(Screen.SelectTopics.route)
                 }
             )
@@ -280,6 +283,7 @@ fun NavGraph(
                 onBackClick = { navController.popBackStack() },
                 onNextClick = { topics ->
                     viewModel.updateSignupData(topics = topics)
+                    viewModel.saveSignupProgress()
                     navController.navigate(Screen.SelectSources.route)
                 }
             )
@@ -291,6 +295,7 @@ fun NavGraph(
                 onBackClick = { navController.popBackStack() },
                 onNextClick = { sources ->
                     viewModel.updateSignupData(sources = sources)
+                    viewModel.saveSignupProgress()
                     navController.navigate(Screen.FillProfile.route)
                 }
             )
@@ -324,8 +329,13 @@ fun NavGraph(
                     )
                     viewModel.completeSignup()
                 },
+                onImagePick = { uri ->
+                    viewModel.uploadProfileImage(uri)
+                },
                 initialEmail = viewModel.signupUser.email,
-                initialPhone = viewModel.signupUser.phoneNumber
+                initialPhone = viewModel.signupUser.phoneNumber,
+                profileImageUrl = viewModel.signupUser.profileImageUrl,
+                isLoading = viewModel.isLoading.value
             )
         }
         composable(Screen.Main.route) {
@@ -342,8 +352,8 @@ fun NavGraph(
                 onSearchClick = {
                     navController.navigate(Screen.Search.route)
                 },
-                onAuthorClick = {
-                    navController.navigate(Screen.AuthorProfile.route)
+                onAuthorClick = { sourceId: String ->
+                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
@@ -351,8 +361,8 @@ fun NavGraph(
                 onEditProfileClick = {
                     navController.navigate(Screen.EditProfile.route)
                 },
-                onNewsItemClick = {
-                    navController.navigate(Screen.NewsDetail.route)
+                onNewsItemClick = { url: String ->
+                    // Navigate to detail
                 },
                 onCreateNewsClick = {
                     navController.navigate(Screen.CreateNews.route)
@@ -420,29 +430,38 @@ fun NavGraph(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAuthorClick = {
-                    navController.navigate(Screen.AuthorProfile.route)
+                onAuthorClick = { sourceId: String ->
+                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
                 },
-                onNewsItemClick = {
-                    navController.navigate(Screen.NewsDetail.route)
+                onNewsItemClick = { url: String ->
+                    // Navigate to detail
                 }
             )
         }
         composable(Screen.Search.route) {
             SearchScreen(
-                onAuthorClick = {
-                    navController.navigate(Screen.AuthorProfile.route)
+                onAuthorClick = { sourceId: String ->
+                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
                 },
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onNewsItemClick = {
-                    navController.navigate(Screen.NewsDetail.route)
+                onNewsItemClick = { url: String ->
+                    // Navigate to detail
                 }
             )
         }
-        composable(Screen.AuthorProfile.route) {
+        composable(
+            route = Screen.AuthorProfile.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("sourceId") {
+                    type = androidx.navigation.NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val sourceId = backStackEntry.arguments?.getString("sourceId") ?: ""
             AuthorProfileScreen(
+                sourceId = sourceId,
                 onBackClick = {
                     navController.popBackStack()
                 }

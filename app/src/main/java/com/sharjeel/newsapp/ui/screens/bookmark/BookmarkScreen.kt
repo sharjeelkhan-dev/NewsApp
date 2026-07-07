@@ -28,7 +28,7 @@ fun BookmarkScreenPreview() {
 
 @Composable
 fun BookmarkScreen(
-    onNewsItemClick: () -> Unit = {}
+    onNewsItemClick: (String) -> Unit = { _ -> }
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -111,7 +111,7 @@ fun BookmarkScreen(
                         time = "14m ago",
                         image = R.drawable.newsimages2,
                         onAuthorClick = { /* Bookmark screens navigation usually goes to detail or author */ },
-                        onItemClick = onNewsItemClick
+                        onItemClick = { onNewsItemClick("https://www.bbc.com/news/world-europe-61124148") }
                     )
                 }
             }

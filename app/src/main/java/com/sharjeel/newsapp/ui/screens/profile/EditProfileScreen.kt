@@ -1,8 +1,11 @@
 package com.sharjeel.newsapp.ui.screens.profile
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -75,6 +78,12 @@ fun EditProfileScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { viewModel.uploadProfileImage(it) }
+    }
 
     // Initialize fields when user data is loaded
     LaunchedEffect(user) {
@@ -180,7 +189,8 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .size(140.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { galleryLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (user?.profileImageUrl?.isNotEmpty() == true) {
@@ -202,7 +212,7 @@ fun EditProfileScreen(
                 
                 // Camera Icon Overlay
                 Surface(
-                    onClick = { /* TODO: Change Photo */ },
+                    onClick = { galleryLauncher.launch("image/*") },
                     shape = CircleShape,
                     color = BluePrimary,
                     modifier = Modifier

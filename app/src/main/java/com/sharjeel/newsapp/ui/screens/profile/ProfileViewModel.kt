@@ -29,21 +29,55 @@ class ProfileViewModel @Inject constructor(
     val eventFlow = _eventFlow.asSharedFlow()
 
     init {
-        loadUserProfile()
+        observeUserProfile()
+    }
+
+    private fun observeUserProfile() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            
+            // Step 1: Check for local image first
+            val localPath = repository.getLocalProfileImage()
+            
+            // Step 2: Immediate fetch from Firestore
+            val uid = repository.currentUser?.uid
+            if (uid != null) {
+                repository.getUserProfile(uid).onSuccess { user ->
+                    _userState.value = user?.copy(
+                        profileImageUrl = localPath ?: user.profileImageUrl
+                    )
+                    _isLoading.value = false
+                }.onFailure {
+                    _isLoading.value = false
+                }
+            } else {
+                _isLoading.value = false
+            }
+
+            // Step 3: Listen for background updates
+            repository.getCurrentUserProfile().collect { user ->
+                _userState.value = user?.copy(
+                    profileImageUrl = repository.getLocalProfileImage() ?: user.profileImageUrl
+                )
+            }
+        }
     }
 
     fun loadUserProfile() {
+        // Redundant with observeUserProfile, but keeping for compatibility
+    }
+
+    fun uploadProfileImage(uri: android.net.Uri) {
         viewModelScope.launch {
-            val uid = repository.currentUser?.uid
-            if (uid != null) {
-                _isLoading.value = true
-                repository.getUserProfile(uid).onSuccess { user ->
-                    _userState.value = user
-                }.onFailure { e ->
-                    _eventFlow.emit(UiEvent.ShowError(e.message ?: "Failed to load profile"))
-                }
-                _isLoading.value = false
+            _isLoading.value = true
+            repository.saveLocalProfileImage(uri).onSuccess { path ->
+                // Image is saved locally on device
+                val currentUser = _userState.value ?: User()
+                _userState.value = currentUser.copy(profileImageUrl = path)
+            }.onFailure { e ->
+                _eventFlow.emit(UiEvent.ShowError(e.message ?: "Failed to save image locally"))
             }
+            _isLoading.value = false
         }
     }
 

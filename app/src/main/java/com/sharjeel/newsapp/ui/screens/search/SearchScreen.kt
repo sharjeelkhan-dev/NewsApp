@@ -66,9 +66,9 @@ import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 
 @Composable
 fun SearchScreen(
-    onAuthorClick: () -> Unit,
+    onAuthorClick: (String) -> Unit,
     onBackClick: () -> Unit,
-    onNewsItemClick: () -> Unit = {}
+    onNewsItemClick: (String) -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -317,7 +317,7 @@ fun RecentSearchesContent(
 }
 
 @Composable
-fun NewsTabContent(onNewsItemClick: () -> Unit = {}) {
+fun NewsTabContent(onNewsItemClick: (String) -> Unit = {}) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -330,7 +330,8 @@ fun NewsTabContent(onNewsItemClick: () -> Unit = {}) {
                 publisher = "BBC News",
                 time = "14m ago",
                 image = R.drawable.newsimages2,
-                onItemClick = onNewsItemClick
+                profileImageUrl = "",
+                onItemClick = { onNewsItemClick("") }
             )
         }
         item {
@@ -340,7 +341,8 @@ fun NewsTabContent(onNewsItemClick: () -> Unit = {}) {
                 publisher = "BBC News",
                 time = "4h ago",
                 image = R.drawable.newsimages,
-                onItemClick = onNewsItemClick
+                profileImageUrl = "",
+                onItemClick = { onNewsItemClick("") }
             )
         }
         item {
@@ -350,7 +352,8 @@ fun NewsTabContent(onNewsItemClick: () -> Unit = {}) {
                 publisher = "CNN",
                 time = "1h ago",
                 image = R.drawable.newsimages3,
-                onItemClick = onNewsItemClick
+                profileImageUrl = "",
+                onItemClick = { onNewsItemClick("") }
             )
         }
     }
@@ -379,7 +382,7 @@ fun TopicsTabContent(
 fun AuthorTabContent(
     authors: List<AuthorItemData>,
     onToggleFollow: (AuthorItemData) -> Unit,
-    onAuthorClick: () -> Unit
+    onAuthorClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -390,7 +393,7 @@ fun AuthorTabContent(
             SearchAuthorItem(
                 author = author,
                 onToggleFollow = { onToggleFollow(author) },
-                onAuthorClick = onAuthorClick
+                onAuthorClick = { onAuthorClick("bbc-news") } // Placeholder
             )
         }
     }

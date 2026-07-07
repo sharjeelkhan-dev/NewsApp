@@ -1,7 +1,9 @@
 package com.sharjeel.newsapp.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -12,17 +14,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.screens.bookmark.BookmarkScreen
 import com.sharjeel.newsapp.ui.screens.explore.ExploreScreen
@@ -64,19 +70,21 @@ fun MainScreen(
     onNotificationClick: () -> Unit,
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onAuthorClick: () -> Unit,
+    onAuthorClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onEditProfileClick: () -> Unit,
-    onNewsItemClick: () -> Unit,
+    onNewsItemClick: (String) -> Unit,
     onCreateNewsClick: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    viewModel: MainViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
+    val user by viewModel.userState
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            BottomNavigation(navController = navController)
+            BottomNavigation(navController = navController, profileImageUrl = user?.profileImageUrl ?: "")
         }
     ) { innerPadding ->
         NavHost(
@@ -98,8 +106,8 @@ fun MainScreen(
             composable(BottomBarScreen.Explore.route) {
                 ExploreScreen(
                     onSearchClick = onSearchClick,
-                    onAuthorClick = onAuthorClick,
-                    onNewsItemClick = onNewsItemClick
+                    onAuthorClick = { sourceId -> onAuthorClick(sourceId) },
+                    onNewsItemClick = { url -> onNewsItemClick(url) }
                 )
             }
             composable(BottomBarScreen.Bookmark.route) {
@@ -121,7 +129,7 @@ fun MainScreen(
 }
 
 @Composable
-fun BottomNavigation(navController: androidx.navigation.NavHostController) {
+fun BottomNavigation(navController: androidx.navigation.NavHostController, profileImageUrl: String = "") {
     val screens = listOf(
         BottomBarScreen.Home,
         BottomBarScreen.Explore,
@@ -143,16 +151,33 @@ fun BottomNavigation(navController: androidx.navigation.NavHostController) {
                     Text(
                         text = screen.title,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            fontWeight = if (isSelected) FontWeight.SemiBold
+                            else FontWeight.Normal
                         )
                     )
                 },
                 icon = {
-                    Icon(
-                        painter = painterResource(id = screen.icon),
-                        contentDescription = screen.title,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    val iconSize = 24.dp
+                    if (screen is BottomBarScreen.Profile && profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = screen.title,
+                            modifier = Modifier
+                                .size(iconSize)
+                                .clip(CircleShape)
+                                .then(
+                                    if (isSelected) Modifier.border(2.dp, BluePrimary, CircleShape)
+                                    else Modifier
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = screen.icon),
+                            contentDescription = screen.title,
+                            modifier = Modifier.size(iconSize)
+                        )
+                    }
                 },
                 selected = isSelected,
                 onClick = {

@@ -63,15 +63,15 @@ data class ExplorePopularData(val category: String, val title: String, val publi
 @Composable
 fun ExploreScreenPreview() {
     NewsAppTheme {
-        ExploreScreen(onSearchClick = {}, onAuthorClick = {})
+        ExploreScreen(onSearchClick = {}, onAuthorClick = { _ -> })
     }
 }
 
 @Composable
 fun ExploreScreen(
     onSearchClick: () -> Unit,
-    onAuthorClick: () -> Unit,
-    onNewsItemClick: () -> Unit = {}
+    onAuthorClick: (String) -> Unit,
+    onNewsItemClick: (String) -> Unit = { _ -> }
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -271,13 +271,13 @@ fun ExploreTopicItem(topic: ExploreTopicData, onToggleSave: () -> Unit) {
 @Composable
 fun ExploreBookmarkStyleItem(
     article: ExplorePopularData,
-    onAuthorClick: () -> Unit,
-    onItemClick: () -> Unit = {}
+    onAuthorClick: (String) -> Unit,
+    onItemClick: (String) -> Unit = { _ -> }
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onItemClick() }
+            .clickable { onItemClick("") }
     ) {
         // Main Image Area - Full Width as seen in the image
         AsyncImage(
@@ -329,7 +329,7 @@ fun ExploreBookmarkStyleItem(
                     .size(20.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFBB1919))
-                    .clickable { onAuthorClick() },
+                    .clickable { onAuthorClick("bbc-news") },
                 contentAlignment = Alignment.Center
             ) {
                 Text("B", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
@@ -340,7 +340,7 @@ fun ExploreBookmarkStyleItem(
             Text(
                 text = article.publisher,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.clickable { onAuthorClick() }
+                modifier = Modifier.clickable { onAuthorClick("bbc-news") }
             )
 
             Spacer(modifier = Modifier.width(12.dp))

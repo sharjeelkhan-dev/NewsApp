@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sharjeel.newsapp.R
@@ -82,10 +83,14 @@ fun HomeScreen(
     onNotificationClick: () -> Unit,
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onAuthorClick: () -> Unit,
+    onAuthorClick: (String) -> Unit,
     onFilterClick: () -> Unit = {},
-    onNewsItemClick: () -> Unit = {}
+    onNewsItemClick: (String) -> Unit = { _ -> },
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val user by viewModel.userState
+    val trendingNews by viewModel.trendingNews
+    val latestNews by viewModel.latestNews
     val categories = listOf("All", "Sports", "Politics", "Business", "Health", "Travel", "Science")
     var selectedCategory by remember { mutableStateOf("All") }
     val listState = rememberLazyListState()
@@ -129,7 +134,7 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
+                        indication = androidx.compose.material3.ripple(),
                         onClick = onSearchClick
                     ),
                 placeholder = {
@@ -177,13 +182,20 @@ fun HomeScreen(
                 flingBehavior = flingBehavior,
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                item(key = "trending_section") {
-                    TrendingSection(
-                        onSeeAllClick = onSeeAllTrendingClick,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
+                if (trendingNews.isNotEmpty()) {
+                    item(key = "trending_section") {
+                        val firstTrending = trendingNews.first()
+                        TrendingSection(
+                            title = firstTrending.title,
+                            category = firstTrending.sourceName,
+                            imageUrl = firstTrending.urlToImage,
+                            publisher = firstTrending.sourceName,
+                            onSeeAllClick = onSeeAllTrendingClick,
+                            onAuthorClick = { onAuthorClick(firstTrending.sourceId) },
+                            onItemClick = { onNewsItemClick(firstTrending.url) }
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                 }
 
                 // Latest Section Header
@@ -192,63 +204,31 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Category Tabs (Horizontal row inside Vertical list)
+                // Category Tabs
                 item(key = "category_tabs") {
                     CategoryTabs(
                         categories = categories,
                         selectedCategory = selectedCategory,
-                        onCategorySelected = { selectedCategory = it }
+                        onCategorySelected = { 
+                            selectedCategory = it
+                        }
                     )
                     Spacer(modifier = Modifier.height(22.dp))
                 }
 
-                // News Feed Items
-                item(key = "news_1") {
+                // Dynamic Latest News
+                items(latestNews) { article ->
                     NewsItem(
-                        category = "Europe",
-                        title = "Ukraine's President Zelenskyy to BBC: Blood money being paid for Russian oil",
-                        publisher = "BBC News",
-                        time = "14m ago",
-                        image = R.drawable.newsimages2,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
+                        category = article.sourceName,
+                        title = article.title,
+                        publisher = article.sourceName,
+                        time = article.publishedAt,
+                        image = R.drawable.newsimages, 
+                        remoteImageUrl = article.urlToImage,
+                        onAuthorClick = { onAuthorClick(article.sourceId) },
+                        onItemClick = { onNewsItemClick(article.url) }
                     )
                     Spacer(modifier = Modifier.height(22.dp))
-                }
-                item(key = "news_2") {
-                    NewsItem(
-                        category = "Travel",
-                        title = "Her train broke down. Her phone died. And then she met her future husband",
-                        publisher = "CNN",
-                        time = "1h ago",
-                        image = R.drawable.newsimages3,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
-                    )
-                    Spacer(modifier = Modifier.height(22.dp))
-                }
-                item(key = "news_3") {
-                    NewsItem(
-                        category = "Business",
-                        title = "Global markets brace for impact as interest rates rise again",
-                        publisher = "Reuters",
-                        time = "3h ago",
-                        image = R.drawable.newsimages,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
-                    )
-                    Spacer(modifier = Modifier.height(22.dp))
-                }
-                item(key = "news_4") {
-                    NewsItem(
-                        category = "Science",
-                        title = "New discovery in deep space challenges our understanding of the universe",
-                        publisher = "NASA",
-                        time = "5h ago",
-                        image = R.drawable.newsimages2,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
-                    )
                 }
             }
         }
@@ -257,6 +237,10 @@ fun HomeScreen(
 
 @Composable
 fun TrendingSection(
+    title: String = "Russian warship: Moskva sinks in Black Sea",
+    category: String = "Europe",
+    imageUrl: String = "",
+    publisher: String = "BBC News",
     onSeeAllClick: () -> Unit,
     onAuthorClick: () -> Unit = {},
     onItemClick: () -> Unit = {}
@@ -288,20 +272,32 @@ fun TrendingSection(
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Image(
-            painter = painterResource(id = R.drawable.newsimages),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(183.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.Crop
-        )
+        if (imageUrl.isNotEmpty()) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(183.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Image(
+                painter = painterResource(id = R.drawable.newsimages),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(183.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Europe",
+            text = category,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelSmall
         )
@@ -309,7 +305,7 @@ fun TrendingSection(
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "Russian warship: Moskva sinks in Black Sea",
+            text = title,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
@@ -341,7 +337,7 @@ fun TrendingSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "B",
+                        text = publisher.take(1).uppercase(),
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -349,7 +345,7 @@ fun TrendingSection(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "BBC News",
+                    text = publisher,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -484,6 +480,8 @@ fun NewsItem(
     time: String,
     image: Int,
     publisherIcon: Int? = null,
+    profileImageUrl: String = "",
+    remoteImageUrl: String = "",
     onAuthorClick: () -> Unit = {},
     onItemClick: () -> Unit = {}
 ) {
@@ -492,22 +490,33 @@ fun NewsItem(
             .fillMaxWidth()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = androidx.compose.material3.ripple(),
                 onClick = onItemClick
             ),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(image)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(96.dp)
-                .clip(RoundedCornerShape(6.dp)),
-            contentScale = ContentScale.Crop
-        )
+        if (remoteImageUrl.isNotEmpty()) {
+            AsyncImage(
+                model = remoteImageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(image)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -538,7 +547,16 @@ fun NewsItem(
                         .padding(vertical = 2.dp, horizontal = 4.dp)
                         .offset(x = (-4).dp)
                 ) {
-                    if (publisherIcon != null) {
+                    if (profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (publisherIcon != null) {
                         Image(
                             painter = painterResource(id = publisherIcon),
                             contentDescription = null,
@@ -556,7 +574,7 @@ fun NewsItem(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "B",
+                                text = publisher.take(1).uppercase(),
                                 color = Color.White,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.ExtraBold

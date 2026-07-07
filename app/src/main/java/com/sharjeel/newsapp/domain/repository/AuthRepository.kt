@@ -5,6 +5,7 @@ import com.sharjeel.newsapp.domain.model.User
 
 interface AuthRepository {
     val currentUser: FirebaseUser?
+    fun getCurrentUserProfile(): kotlinx.coroutines.flow.Flow<User?>
     suspend fun login(email: String, password: String): Result<FirebaseUser?>
     suspend fun signup(email: String, password: String): Result<FirebaseUser?>
     suspend fun saveUserProfile(user: User): Result<Unit>
@@ -20,6 +21,8 @@ interface AuthRepository {
         onFailure: (String) -> Unit
     ): Result<Unit>
     suspend fun signInWithPhoneCredential(verificationId: String, otp: String): Result<com.google.firebase.auth.FirebaseUser?>
+    suspend fun saveLocalProfileImage(uri: android.net.Uri): Result<String>
+    fun getLocalProfileImage(): String?
     fun logout()
     fun isUserLoggedIn(): Boolean
 }

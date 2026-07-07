@@ -39,8 +39,8 @@ import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 @Composable
 fun LatestNewsScreen(
     onBackClick: () -> Unit,
-    onAuthorClick: () -> Unit,
-    onNewsItemClick: () -> Unit = {}
+    onAuthorClick: (String) -> Unit,
+    onNewsItemClick: (String) -> Unit = { _ -> }
 ) {
     val categories = listOf("All", "Sports", "Politics", "Business", "Health", "Travel", "Science")
     var selectedCategory by remember { mutableStateOf("All") }
@@ -109,8 +109,9 @@ fun LatestNewsScreen(
                         publisher = "BBC News",
                         time = "14m ago",
                         image = R.drawable.newsimages2,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
+                        profileImageUrl = "",
+                        onAuthorClick = { onAuthorClick("bbc-news") },
+                        onItemClick = { onNewsItemClick("") }
                     )
                 }
                 item {
@@ -120,8 +121,9 @@ fun LatestNewsScreen(
                         publisher = "CNN",
                         time = "1h ago",
                         image = R.drawable.newsimages3,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
+                        profileImageUrl = "",
+                        onAuthorClick = { onAuthorClick("cnn") },
+                        onItemClick = { onNewsItemClick("") }
                     )
                 }
                 item {
@@ -131,8 +133,9 @@ fun LatestNewsScreen(
                         publisher = "BBC News",
                         time = "4h ago",
                         image = R.drawable.newsimages,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
+                        profileImageUrl = "",
+                        onAuthorClick = { onAuthorClick("bbc-news") },
+                        onItemClick = { onNewsItemClick("") }
                     )
                 }
                 item {
@@ -142,8 +145,9 @@ fun LatestNewsScreen(
                         publisher = "USA Today",
                         time = "4h ago",
                         image = R.drawable.newsimages2,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
+                        profileImageUrl = "",
+                        onAuthorClick = { onAuthorClick("usa-today") },
+                        onItemClick = { onNewsItemClick("") }
                     )
                 }
                 item {
@@ -153,8 +157,9 @@ fun LatestNewsScreen(
                         publisher = "USA Today",
                         time = "4h ago",
                         image = R.drawable.newsimages3,
-                        onAuthorClick = onAuthorClick,
-                        onItemClick = onNewsItemClick
+                        profileImageUrl = "",
+                        onAuthorClick = { onAuthorClick("usa-today") },
+                        onItemClick = { onNewsItemClick("") }
                     )
                 }
             }
@@ -166,7 +171,7 @@ fun LatestNewsScreen(
 @Composable
 fun LatestNewsScreenPreview() {
     NewsAppTheme {
-        LatestNewsScreen(onBackClick = {}, onAuthorClick = {})
+        LatestNewsScreen(onBackClick = {}, onAuthorClick = { _ -> })
     }
 }
 
@@ -174,6 +179,6 @@ fun LatestNewsScreenPreview() {
 @Composable
 fun LatestNewsScreenDarkPreview() {
     NewsAppTheme {
-        LatestNewsScreen(onBackClick = {}, onAuthorClick = {})
+        LatestNewsScreen(onBackClick = {}, onAuthorClick = { _ -> })
     }
 }

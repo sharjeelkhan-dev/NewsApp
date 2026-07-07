@@ -1,0 +1,46 @@
+package com.sharjeel.newsapp.data.remote.dto
+
+import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
+
+@JsonClass(generateAdapter = true)
+data class NewsResponse(
+    @Json(name = "status") val status: String,
+    @Json(name = "totalResults") val totalResults: Int,
+    @Json(name = "articles") val articles: List<ArticleDto>
+)
+
+@JsonClass(generateAdapter = true)
+data class ArticleDto(
+    @Json(name = "source") val source: SourceDto,
+    @Json(name = "author") val author: String?,
+    @Json(name = "title") val title: String,
+    @Json(name = "description") val description: String?,
+    @Json(name = "url") val url: String,
+    @Json(name = "urlToImage") val urlToImage: String?,
+    @Json(name = "publishedAt") val publishedAt: String,
+    @Json(name = "content") val content: String?
+)
+
+@JsonClass(generateAdapter = true)
+data class SourceDto(
+    @Json(name = "id") val id: String?,
+    @Json(name = "name") val name: String
+)
+
+@JsonClass(generateAdapter = true)
+data class SourcesResponse(
+    @Json(name = "status") val status: String,
+    @Json(name = "sources") val sources: List<NewsSourceDto>
+)
+
+@JsonClass(generateAdapter = true)
+data class NewsSourceDto(
+    @Json(name = "id") val id: String,
+    @Json(name = "name") val name: String,
+    @Json(name = "description") val description: String,
+    @Json(name = "url") val url: String,
+    @Json(name = "category") val category: String,
+    @Json(name = "language") val language: String,
+    @Json(name = "country") val country: String
+)

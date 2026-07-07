@@ -1,7 +1,9 @@
 package com.sharjeel.newsapp.ui.screens.auth
 
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.EmailAuthProvider
@@ -30,7 +32,7 @@ class AuthViewModel @Inject constructor(
     val savedEmail = dataStoreManager.savedEmail
     val isRememberMeChecked = dataStoreManager.rememberMe
 
-    var signupUser = User()
+    var signupUser by mutableStateOf(User())
         private set
 
     private var _verificationId = ""
@@ -42,6 +44,7 @@ class AuthViewModel @Inject constructor(
         email: String? = null,
         fullName: String? = null,
         phoneNumber: String? = null,
+        profileImageUrl: String? = null,
         country: String? = null,
         topics: List<String>? = null,
         sources: List<String>? = null,
@@ -54,12 +57,25 @@ class AuthViewModel @Inject constructor(
             email = email ?: signupUser.email,
             fullName = fullName ?: signupUser.fullName,
             phoneNumber = phoneNumber ?: signupUser.phoneNumber,
+            profileImageUrl = profileImageUrl ?: signupUser.profileImageUrl,
             country = country ?: signupUser.country,
             topics = topics ?: signupUser.topics,
             sources = sources ?: signupUser.sources,
             bio = bio ?: signupUser.bio,
             website = website ?: signupUser.website
         )
+    }
+
+    fun uploadProfileImage(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.saveLocalProfileImage(uri).onSuccess { path ->
+                updateSignupData(profileImageUrl = path)
+            }.onFailure { e ->
+                _eventFlow.emit(UiEvent.ShowError(e.message ?: "Failed to save image locally"))
+            }
+            _isLoading.value = false
+        }
     }
 
     fun login(identifier: String, password: String, rememberMe: Boolean = false) {
@@ -103,7 +119,12 @@ class AuthViewModel @Inject constructor(
                 // Email Signup
                 val result = repository.signup(identifier, password)
                 result.onSuccess { firebaseUser ->
-                    updateSignupData(id = firebaseUser?.uid ?: "", email = identifier)
+                    val uid = firebaseUser?.uid ?: ""
+                    updateSignupData(id = uid, email = identifier)
+                    
+                    // Create initial profile in Firestore immediately
+                    repository.saveUserProfile(signupUser)
+
                     handleSuccessfulSignup(rememberMe, identifier)
                 }.onFailure { e ->
                     _isLoading.value = false
@@ -168,18 +189,21 @@ class AuthViewModel @Inject constructor(
                 val uid = firebaseUser?.uid ?: ""
                 val phone = firebaseUser?.phoneNumber ?: ""
                 
-                // Now create a dummy email identity so we can have a password
-                // This makes it show up as BOTH Email and Phone provider in Firebase
+                // Create a dummy email identity so we can have a password fallback
                 val internalEmail = "${phone.replace("+", "")}@newsapp.com"
                 try {
                     firebaseUser?.linkWithCredential(
                         EmailAuthProvider.getCredential(internalEmail, _pendingPassword)
                     )?.await()
                 } catch (e: Exception) {
-                    // Link might fail if user already exists or other reasons, but we have the phone id
+                    // Link might fail if user already exists, but we have the phone identity
                 }
                 
                 updateSignupData(id = uid, phoneNumber = phone, email = internalEmail)
+                
+                // Create initial profile in Firestore
+                repository.saveUserProfile(signupUser)
+
                 _isLoading.value = false
                 _eventFlow.emit(UiEvent.NavigateToOnboarding)
             }.onFailure { e ->
@@ -215,6 +239,7 @@ class AuthViewModel @Inject constructor(
             
             result.onSuccess {
                 dataStoreManager.saveOnboardingFinished(true)
+                dataStoreManager.saveLoggedIn(true) // Ensure user is marked as logged in
                 _isLoading.value = false
                 _eventFlow.emit(UiEvent.NavigateToHome)
             }.onFailure { e ->
@@ -224,14 +249,48 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun saveSignupProgress() {
+        viewModelScope.launch {
+            if (signupUser.id.isNotEmpty()) {
+                repository.saveUserProfile(signupUser)
+            }
+        }
+    }
+
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
             _isLoading.value = true
             val result = repository.signInWithGoogle(idToken)
-            result.onSuccess {
-                dataStoreManager.saveOnboardingFinished(true)
-                _isLoading.value = false
-                _eventFlow.emit(UiEvent.NavigateToHome)
+            result.onSuccess { firebaseUser ->
+                val uid = firebaseUser?.uid ?: ""
+                
+                // Check if user already exists in Firestore
+                repository.getUserProfile(uid).onSuccess { existingUser ->
+                    if (existingUser != null) {
+                        // User exists, just go Home
+                        dataStoreManager.saveOnboardingFinished(true)
+                        dataStoreManager.saveLoggedIn(true)
+                        _isLoading.value = false
+                        _eventFlow.emit(UiEvent.NavigateToHome)
+                    } else {
+                        // New User - Setup initial data and go to Onboarding
+                        updateSignupData(
+                            id = uid,
+                            email = firebaseUser?.email ?: "",
+                            fullName = firebaseUser?.displayName ?: "",
+                            profileImageUrl = firebaseUser?.photoUrl?.toString() ?: ""
+                        )
+                        // Save initial profile immediately to prevent permission issues later
+                        repository.saveUserProfile(signupUser)
+                        
+                        _isLoading.value = false
+                        _eventFlow.emit(UiEvent.NavigateToOnboarding)
+                    }
+                }.onFailure {
+                    // Fallback for check failure
+                    _isLoading.value = false
+                    _eventFlow.emit(UiEvent.ShowError("Failed to verify user profile"))
+                }
             }.onFailure { e ->
                 _isLoading.value = false
                 _eventFlow.emit(UiEvent.ShowError("Google Sign-In failed"))
@@ -243,10 +302,31 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             val result = repository.signInWithFacebook(accessToken)
-            result.onSuccess {
-                dataStoreManager.saveOnboardingFinished(true)
-                _isLoading.value = false
-                _eventFlow.emit(UiEvent.NavigateToHome)
+            result.onSuccess { firebaseUser ->
+                val uid = firebaseUser?.uid ?: ""
+                
+                repository.getUserProfile(uid).onSuccess { existingUser ->
+                    if (existingUser != null) {
+                        dataStoreManager.saveOnboardingFinished(true)
+                        dataStoreManager.saveLoggedIn(true)
+                        _isLoading.value = false
+                        _eventFlow.emit(UiEvent.NavigateToHome)
+                    } else {
+                        updateSignupData(
+                            id = uid,
+                            email = firebaseUser?.email ?: "",
+                            fullName = firebaseUser?.displayName ?: "",
+                            profileImageUrl = firebaseUser?.photoUrl?.toString() ?: ""
+                        )
+                        repository.saveUserProfile(signupUser)
+                        
+                        _isLoading.value = false
+                        _eventFlow.emit(UiEvent.NavigateToOnboarding)
+                    }
+                }.onFailure {
+                    _isLoading.value = false
+                    _eventFlow.emit(UiEvent.ShowError("Failed to verify user profile"))
+                }
             }.onFailure { e ->
                 _isLoading.value = false
                 _eventFlow.emit(UiEvent.ShowError("Facebook Sign-In failed"))

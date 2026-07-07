@@ -1,5 +1,6 @@
 package com.sharjeel.newsapp.data.repository
 
+import android.content.Context
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -9,9 +10,16 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.snapshots
 import com.sharjeel.newsapp.domain.model.User
 import com.sharjeel.newsapp.domain.repository.AuthRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,11 +27,19 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    @ApplicationContext private val context: Context
 ) : AuthRepository {
 
     override val currentUser: FirebaseUser?
         get() = firebaseAuth.currentUser
+
+    override fun getCurrentUserProfile(): Flow<User?> {
+        val uid = firebaseAuth.currentUser?.uid ?: return emptyFlow()
+        return usersCollection.document(uid).snapshots().map { snapshot ->
+            snapshot.toObject(User::class.java)
+        }
+    }
 
     private val usersCollection = firestore.collection("users")
 
@@ -47,7 +63,15 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun saveUserProfile(user: User): Result<Unit> {
         return try {
-            usersCollection.document(user.id).set(user).await()
+            val uid = user.id.ifEmpty { firebaseAuth.currentUser?.uid }
+                ?: return Result.failure(Exception("Cannot save profile: User not authenticated"))
+            
+            // Don't save local file paths to Firestore
+            val cloudUser = user.copy(
+                id = uid,
+                profileImageUrl = if (user.profileImageUrl.startsWith("/")) "" else user.profileImageUrl
+            )
+            usersCollection.document(uid).set(cloudUser).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -149,6 +173,33 @@ class AuthRepositoryImpl @Inject constructor(
             val credential = PhoneAuthProvider.getCredential(verificationId, otp)
             val result = firebaseAuth.signInWithCredential(credential).await()
             Result.success(result.user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getLocalProfileImage(): String? {
+        val uid = firebaseAuth.currentUser?.uid ?: return null
+        val file = File(context.filesDir, "profile_$uid.jpg")
+        return if (file.exists()) file.absolutePath else null
+    }
+
+    override suspend fun saveLocalProfileImage(uri: android.net.Uri): Result<String> {
+        return try {
+            val uid = firebaseAuth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
+            val inputStream = context.contentResolver.openInputStream(uri) 
+                ?: return Result.failure(Exception("Could not open image stream"))
+            
+            val fileName = "profile_$uid.jpg"
+            val file = File(context.filesDir, fileName)
+            
+            FileOutputStream(file).use { output ->
+                inputStream.use { input ->
+                    input.copyTo(output)
+                }
+            }
+            
+            Result.success(file.absolutePath)
         } catch (e: Exception) {
             Result.failure(e)
         }

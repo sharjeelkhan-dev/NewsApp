@@ -100,6 +100,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
 
     // Social Login
     implementation(libs.play.services.auth)

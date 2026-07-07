@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,9 +38,9 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,24 +50,33 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthorProfileScreen(
-    onBackClick: () -> Unit
+    sourceId: String,
+    onBackClick: () -> Unit,
+    viewModel: AuthorViewModel = hiltViewModel()
 ) {
-    var selectedTab by remember { mutableIntStateOf(1) } // "Recent" selected
+    val news by viewModel.sourceNews
+    val isFollowing by viewModel.isFollowing
+    val isLoading by viewModel.isLoading
+
+    LaunchedEffect(sourceId) {
+        viewModel.loadSourceData(sourceId)
+    }
+
+    var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("News", "Recent")
-    var isFollowing by remember { mutableStateOf(true) }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -107,30 +118,19 @@ fun AuthorProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // BBC Logo Circle
                 Box(
                     modifier = Modifier
                         .size(70.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFBB1919)), // BBC Red
+                        .background(Color(0xFFBB1919)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "BBC",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 14.sp
-                        )
-                        Text(
-                            text = "NEWS",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 14.sp
-                        )
-                    }
+                    Text(
+                        text = sourceId.take(2).uppercase(),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 Row(
@@ -139,14 +139,14 @@ fun AuthorProfileScreen(
                 ) {
                     AuthorStat(number = "1.2M", label = "Followers")
                     AuthorStat(number = "124K", label = "Following")
-                    AuthorStat(number = "326", label = "News")
+                    AuthorStat(number = news.size.toString(), label = "News")
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "BBC News",
+                text = sourceId.replace("-", " ").uppercase(),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -156,7 +156,7 @@ fun AuthorProfileScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "is an operational business division of the British Broadcasting Corporation responsible for the gathering and broadcasting of news and current affairs.",
+                text = "Official news source for $sourceId. Providing real-time updates and factual reporting.",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 21.sp
@@ -171,7 +171,7 @@ fun AuthorProfileScreen(
             ) {
                 if (isFollowing) {
                     Button(
-                        onClick = { isFollowing = false },
+                        onClick = { viewModel.toggleFollow(sourceId) },
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -188,7 +188,7 @@ fun AuthorProfileScreen(
                     }
                 } else {
                     OutlinedButton(
-                        onClick = { isFollowing = true },
+                        onClick = { viewModel.toggleFollow(sourceId) },
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -226,7 +226,8 @@ fun AuthorProfileScreen(
                     )
                 }
             }
-            // Robust Tab Layout
+            
+            // TabRow
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
@@ -258,10 +259,8 @@ fun AuthorProfileScreen(
                                                 if (animationProgress > 0f) {
                                                     val strokeWidth = 2.dp.toPx()
                                                     val y = size.height + 6.dp.toPx()
-
                                                     val lineWidth = size.width * animationProgress
                                                     val startX = (size.width - lineWidth) / 2
-
                                                     drawLine(
                                                         color = indicatorColor,
                                                         start = Offset(startX, y),
@@ -289,54 +288,28 @@ fun AuthorProfileScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                item {
-                    NewsItem(
-                        category = "Europe",
-                        title = "Ukraine's President Zelenskyy to BBC: Blood money being paid...",
-                        publisher = "BBC News",
-                        time = "14m ago",
-                        image = R.drawable.newsimages2,
-                        onAuthorClick = { /* Already on profile */ },
-                        onItemClick = { /* Detail */ }
-                    )
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BluePrimary)
                 }
-                item {
-                    NewsItem(
-                        category = "Sport",
-                        title = "Frankfurt stun Barcelona to reach semi-finals",
-                        publisher = "BBC News",
-                        time = "1h ago",
-                        image = R.drawable.newsimages3,
-                        onAuthorClick = { /* Already on profile */ },
-                        onItemClick = { /* Detail */ }
-                    )
-                }
-                item {
-                    NewsItem(
-                        category = "Europe",
-                        title = "Russian warship: Moskva sinks in Black Sea",
-                        publisher = "BBC News",
-                        time = "4h ago",
-                        image = R.drawable.newsimages,
-                        onAuthorClick = { /* Already on profile */ },
-                        onItemClick = { /* Detail */ }
-                    )
-                }
-                item {
-                    NewsItem(
-                        category = "Politic",
-                        title = "Madhya Pradesh: Why an Indian state is demolishing Muslim",
-                        publisher = "BBC News",
-                        time = "4h ago",
-                        image = R.drawable.newsimages2,
-                        onAuthorClick = { /* Already on profile */ },
-                        onItemClick = { /* Detail */ }
-                    )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    items(news) { article ->
+                        NewsItem(
+                            category = article.sourceName,
+                            title = article.title,
+                            publisher = article.sourceName,
+                            time = article.publishedAt,
+                            image = R.drawable.newsimages2,
+                            remoteImageUrl = article.urlToImage,
+                            onAuthorClick = { /* Already on profile */ },
+                            onItemClick = { /* Detail */ }
+                        )
+                    }
                 }
             }
         }
@@ -359,21 +332,5 @@ fun AuthorStat(number: String, label: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AuthorProfileScreenPreview() {
-    NewsAppTheme {
-        AuthorProfileScreen(onBackClick = {})
-    }
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun AuthorProfileScreenDarkPreview() {
-    NewsAppTheme {
-        AuthorProfileScreen(onBackClick = {})
     }
 }
