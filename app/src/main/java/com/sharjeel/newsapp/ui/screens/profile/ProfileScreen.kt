@@ -200,9 +200,7 @@ fun ProfileScreen(
                             fontSize = 16.sp
                         )
                     )
-
                     Spacer(modifier = Modifier.height(4.dp))
-
                     Text(
                         text = user?.bio?.takeIf { it.isNotEmpty() } ?: "No bio available.",
                         style = MaterialTheme.typography.bodyMedium.copy(
