@@ -78,7 +78,7 @@ fun ProfileScreen(
     val flingBehavior = SmoothScrollConfig.rememberSmoothFlingBehavior()
 
     LaunchedEffect(key1 = true) {
-        viewModel?.eventFlow?.collectLatest { event ->
+        viewModel.eventFlow.collectLatest { event ->
             if (event is ProfileViewModel.UiEvent.LoggedOut) {
                 onLogoutClick()
             }
@@ -246,18 +246,17 @@ fun ProfileScreen(
                                 )
                             )
                         }
-                            Button(
-                                onClick = {},
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(6.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = BluePrimary,
-                                    contentColor = Color.White
-                                )
+                        Button(
+                            onClick = {},
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BluePrimary,
+                                contentColor = Color.White
                             )
-                            {
+                        ) {
                             Text(
                                 text = "Website",
                                 style = MaterialTheme.typography.labelLarge.copy(
@@ -268,6 +267,9 @@ fun ProfileScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 // TABS
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -343,34 +345,37 @@ fun ProfileScreen(
                     // Logic for empty news
                     item {
                         if (selectedTab == 0) {
-                            Box(modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text("No news published yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
-                    
-                    if (selectedTab == 1) {
-                        items(2) { index ->
-                             val sampleCategories = listOf("Technology", "Business")
-                             val sampleTitles = listOf(
-                                 "Firebase App Check initialized successfully",
-                                 "New News App UI updated with Firestore"
-                             )
-                             val sampleImages = listOf(R.drawable.newsimages, R.drawable.newsimages2)
 
-                             NewsItem(
-                                 category = sampleCategories[index],
-                                 title = sampleTitles[index],
-                                 publisher = user?.fullName ?: user?.username ?: "Me",
-                                 time = "Just now",
-                                 image = sampleImages[index],
-                                 publisherIcon = if (user?.profileImageUrl?.isNotEmpty() == true) null else R.drawable.ic_avatar,
-                                 profileImageUrl = user?.profileImageUrl ?: "",
-                                 onAuthorClick = { },
-                                 onItemClick = { onNewsItemClick("") }
-                             )
+                    if (selectedTab == 1) {
+                        items(count = 2) { index ->
+                            val sampleCategories = listOf("Technology", "Business")
+                            val sampleTitles = listOf(
+                                "Firebase App Check initialized successfully",
+                                "New News App UI updated with Firestore"
+                            )
+                            val sampleImages = listOf(R.drawable.newsimages, R.drawable.newsimages2)
+
+                            NewsItem(
+                                category = sampleCategories[index],
+                                title = sampleTitles[index],
+                                publisher = user?.fullName ?: user?.username ?: "Me",
+                                publishedAt = "Just now",
+                                image = sampleImages[index],
+                                remoteImageUrl = "",
+                                articleUrl = "",
+                                onAuthorClick = { },
+                                onItemClick = { onNewsItemClick("") }
+                            )
                         }
                     }
                 }

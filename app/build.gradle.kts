@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.moshi)
     implementation(libs.moshi.kotlin)
+    implementation(libs.okhttp.logging.interceptor)
 
     // Coil
     implementation(libs.coil.compose)
@@ -110,7 +111,9 @@ dependencies {
     implementation(libs.googleid)
 
     implementation(libs.facebook.android.sdk)
-
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.appcheck.debug)
+
+    // Add this line for HTML parsing
+    implementation(libs.jsoup)
 }

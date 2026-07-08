@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,8 +58,6 @@ import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.BluePrimary
-import com.sharjeel.newsapp.ui.theme.NewsAppTheme
-import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +85,7 @@ fun AuthorProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
@@ -95,7 +94,7 @@ fun AuthorProfileScreen(
                 actions = {
                     IconButton(onClick = { }) {
                         Icon(
-                            imageVector = Icons.Default.MoreVert, 
+                            imageVector = Icons.Default.MoreVert,
                             contentDescription = "More",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
@@ -152,7 +151,7 @@ fun AuthorProfileScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
@@ -208,7 +207,7 @@ fun AuthorProfileScreen(
                         }
                     }
                 }
-                
+
                 Button(
                     onClick = { },
                     modifier = Modifier
@@ -226,7 +225,7 @@ fun AuthorProfileScreen(
                     )
                 }
             }
-            
+
             // TabRow
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -285,9 +284,9 @@ fun AuthorProfileScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = BluePrimary)
@@ -303,9 +302,10 @@ fun AuthorProfileScreen(
                             category = article.sourceName,
                             title = article.title,
                             publisher = article.sourceName,
-                            time = article.publishedAt,
+                            publishedAt = article.publishedAt,
                             image = R.drawable.newsimages2,
                             remoteImageUrl = article.urlToImage,
+                            articleUrl = article.url,
                             onAuthorClick = { /* Already on profile */ },
                             onItemClick = { /* Detail */ }
                         )

@@ -1,6 +1,7 @@
 package com.sharjeel.newsapp.ui.screens.latest_news
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -23,25 +25,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.screens.home.CategoryTabs
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import com.sharjeel.newsapp.util.TimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LatestNewsScreen(
     onBackClick: () -> Unit,
     onAuthorClick: (String) -> Unit,
-    onNewsItemClick: (String) -> Unit = { _ -> }
+    onNewsItemClick: (String) -> Unit = { _ -> },
+    viewModel: LatestNewsViewModel = hiltViewModel()
 ) {
+    val news by viewModel.latestNews
+    val isLoading by viewModel.isLoading
     val categories = listOf("All", "Sports", "Politics", "Business", "Health", "Travel", "Science")
     var selectedCategory by remember { mutableStateOf("All") }
 
@@ -92,75 +100,37 @@ fun LatestNewsScreen(
             CategoryTabs(
                 categories = categories,
                 selectedCategory = selectedCategory,
-                onCategorySelected = { selectedCategory = it }
+                onCategorySelected = {
+                    selectedCategory = it
+                    viewModel.loadLatestNews(it)
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                item {
-                    NewsItem(
-                        category = "Europe",
-                        title = "Ukraine's President Zelenskyy to BBC: Blood money being paid for Russian oil",
-                        publisher = "BBC News",
-                        time = "14m ago",
-                        image = R.drawable.newsimages2,
-                        profileImageUrl = "",
-                        onAuthorClick = { onAuthorClick("bbc-news") },
-                        onItemClick = { onNewsItemClick("") }
-                    )
+            if (isLoading && news.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.CircularProgressIndicator(color = com.sharjeel.newsapp.ui.theme.BluePrimary)
                 }
-                item {
-                    NewsItem(
-                        category = "Travel",
-                        title = "Her train broke down. Her phone died. And then she met her future husband",
-                        publisher = "CNN",
-                        time = "1h ago",
-                        image = R.drawable.newsimages3,
-                        profileImageUrl = "",
-                        onAuthorClick = { onAuthorClick("cnn") },
-                        onItemClick = { onNewsItemClick("") }
-                    )
-                }
-                item {
-                    NewsItem(
-                        category = "Europe",
-                        title = "Russian warship: Moskva sinks in Black Sea",
-                        publisher = "BBC News",
-                        time = "4h ago",
-                        image = R.drawable.newsimages,
-                        profileImageUrl = "",
-                        onAuthorClick = { onAuthorClick("bbc-news") },
-                        onItemClick = { onNewsItemClick("") }
-                    )
-                }
-                item {
-                    NewsItem(
-                        category = "Money",
-                        title = "Wind power produced more electricity than coal and nuclear combined",
-                        publisher = "USA Today",
-                        time = "4h ago",
-                        image = R.drawable.newsimages2,
-                        profileImageUrl = "",
-                        onAuthorClick = { onAuthorClick("usa-today") },
-                        onItemClick = { onNewsItemClick("") }
-                    )
-                }
-                item {
-                    NewsItem(
-                        category = "Life",
-                        title = "'We keep rising to new challenges:' For churches hit by",
-                        publisher = "USA Today",
-                        time = "4h ago",
-                        image = R.drawable.newsimages3,
-                        profileImageUrl = "",
-                        onAuthorClick = { onAuthorClick("usa-today") },
-                        onItemClick = { onNewsItemClick("") }
-                    )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    items(news) { article ->
+                        NewsItem(
+                            category = article.sourceName,
+                            title = article.title,
+                            publisher = article.sourceName,
+                            publishedAt = TimeUtils.formatRelativeTime(article.publishedAt),
+                            image = R.drawable.newsimages,
+                            remoteImageUrl = article.urlToImage,
+                            articleUrl = article.url,
+                            onAuthorClick = { onAuthorClick(article.sourceId) },
+                            onItemClick = { onNewsItemClick(article.url) }
+                        )
+                    }
                 }
             }
         }

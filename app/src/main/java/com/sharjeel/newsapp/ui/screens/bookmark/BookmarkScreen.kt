@@ -1,11 +1,28 @@
 package com.sharjeel.newsapp.ui.screens.bookmark
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -103,13 +120,15 @@ fun BookmarkScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                items(5, key = { it }) { index ->
+                items(count = 5, key = { it }) { index ->
                     NewsItem(
                         category = "Europe",
                         title = "Ukraine's President Zelenskyy to BBC: Blood money being paid for Russian oil",
                         publisher = "BBC News",
-                        time = "14m ago",
+                        publishedAt = "14m ago",
                         image = R.drawable.newsimages2,
+                        remoteImageUrl = "",
+                        articleUrl = "https://www.bbc.com/news/world-europe-61124148",
                         onAuthorClick = { /* Bookmark screens navigation usually goes to detail or author */ },
                         onItemClick = { onNewsItemClick("https://www.bbc.com/news/world-europe-61124148") }
                     )

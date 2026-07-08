@@ -58,22 +58,28 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
+import com.sharjeel.newsapp.util.TimeUtils
 
 @Composable
 fun SearchScreen(
     onAuthorClick: (String) -> Unit,
     onBackClick: () -> Unit,
-    onNewsItemClick: (String) -> Unit = {}
+    onNewsItemClick: (String) -> Unit = {},
+    viewModel: SearchViewModel = hiltViewModel()
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    val searchResults by viewModel.searchResults
+    val isLoading by viewModel.isLoading
+
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("News", "Topics", "Author")
-    
+
     val recentSearches = remember { mutableStateListOf("Europe", "Zelenskyy", "Russian Oil", "Future husband") }
 
     // Managed states for topics and authors
@@ -115,7 +121,10 @@ fun SearchScreen(
                 // Search Bar
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = {
+                        searchQuery = it
+                        viewModel.searchNews(it)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
@@ -133,7 +142,10 @@ fun SearchScreen(
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                            IconButton(onClick = {
+                                searchQuery = ""
+                                viewModel.searchNews("")
+                            }) {
                                 Icon(
                                     Icons.Default.Clear,
                                     contentDescription = "Clear",
@@ -210,34 +222,47 @@ fun SearchScreen(
                 // Show Recent Search when bar is empty
                 RecentSearchesContent(
                     recentSearches = recentSearches,
-                    onSearchClick = { searchQuery = it },
+                    onSearchClick = {
+                        searchQuery = it
+                        viewModel.searchNews(it)
+                    },
                     onRemoveClick = { recentSearches.remove(it) },
                     onClearAll = { recentSearches.clear() }
                 )
             } else {
                 // Results Content - Show when typing
                 Box(modifier = Modifier.weight(1f)) {
-                    when (selectedTab) {
-                        0 -> NewsTabContent(onNewsItemClick = onNewsItemClick)
-                        1 -> TopicsTabContent(
-                            topics = topicsState,
-                            onToggleSave = { topic ->
-                                val index = topicsState.indexOf(topic)
-                                if (index != -1) {
-                                    topicsState[index] = topic.copy(isSaved = !topic.isSaved)
+                    if (isLoading) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            androidx.compose.material3.CircularProgressIndicator(color = BluePrimary)
+                        }
+                    } else {
+                        when (selectedTab) {
+                            0 -> NewsTabContent(
+                                articles = searchResults,
+                                onNewsItemClick = onNewsItemClick,
+                                onAuthorClick = onAuthorClick
+                            )
+                            1 -> TopicsTabContent(
+                                topics = topicsState,
+                                onToggleSave = { topic ->
+                                    val index = topicsState.indexOf(topic)
+                                    if (index != -1) {
+                                        topicsState[index] = topic.copy(isSaved = !topic.isSaved)
+                                    }
                                 }
-                            }
-                        )
-                        2 -> AuthorTabContent(
-                            authors = authorsState,
-                            onToggleFollow = { author ->
-                                val index = authorsState.indexOf(author)
-                                if (index != -1) {
-                                    authorsState[index] = author.copy(isFollowing = !author.isFollowing)
-                                }
-                            },
-                            onAuthorClick = onAuthorClick
-                        )
+                            )
+                            2 -> AuthorTabContent(
+                                authors = authorsState,
+                                onToggleFollow = { author ->
+                                    val index = authorsState.indexOf(author)
+                                    if (index != -1) {
+                                        authorsState[index] = author.copy(isFollowing = !author.isFollowing)
+                                    }
+                                },
+                                onAuthorClick = onAuthorClick
+                            )
+                        }
                     }
                 }
             }
@@ -317,43 +342,27 @@ fun RecentSearchesContent(
 }
 
 @Composable
-fun NewsTabContent(onNewsItemClick: (String) -> Unit = {}) {
+fun NewsTabContent(
+    articles: List<com.sharjeel.newsapp.domain.model.Article>,
+    onNewsItemClick: (String) -> Unit = {},
+    onAuthorClick: (String) -> Unit = {}
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        item {
+        items(articles) { article ->
             NewsItem(
-                category = "Europe",
-                title = "Ukraine's President Zelenskyy to BBC: Blood money being paid for Russian oil",
-                publisher = "BBC News",
-                time = "14m ago",
-                image = R.drawable.newsimages2,
-                profileImageUrl = "",
-                onItemClick = { onNewsItemClick("") }
-            )
-        }
-        item {
-            NewsItem(
-                category = "Travel",
-                title = "Russian warship: Moskva sinks in Black Sea",
-                publisher = "BBC News",
-                time = "4h ago",
+                category = article.sourceName,
+                title = article.title,
+                publisher = article.sourceName,
+                publishedAt = TimeUtils.formatRelativeTime(article.publishedAt),
                 image = R.drawable.newsimages,
-                profileImageUrl = "",
-                onItemClick = { onNewsItemClick("") }
-            )
-        }
-        item {
-            NewsItem(
-                category = "Travel",
-                title = "Her train broke down. Her phone died. And then she met her future husband",
-                publisher = "CNN",
-                time = "1h ago",
-                image = R.drawable.newsimages3,
-                profileImageUrl = "",
-                onItemClick = { onNewsItemClick("") }
+                remoteImageUrl = article.urlToImage,
+                articleUrl = article.url,
+                onAuthorClick = { onAuthorClick(article.sourceId) },
+                onItemClick = { onNewsItemClick(article.url) }
             )
         }
     }

@@ -25,8 +25,12 @@ import com.sharjeel.newsapp.ui.screens.author_profile.AuthorProfileScreen
 import com.sharjeel.newsapp.ui.screens.details.CommentScreen
 import com.sharjeel.newsapp.ui.screens.details.CreateNewsScreen
 import com.sharjeel.newsapp.ui.screens.details.DetailScreen
+import com.sharjeel.newsapp.ui.screens.details.DetailViewModel
 import com.sharjeel.newsapp.ui.screens.details.PublishedNewsDetailScreen
+import com.sharjeel.newsapp.ui.screens.explore.ExploreScreen
+import com.sharjeel.newsapp.ui.screens.explore.ExploreViewModel
 import com.sharjeel.newsapp.ui.screens.latest_news.LatestNewsScreen
+import com.sharjeel.newsapp.ui.screens.latest_news.LatestNewsViewModel
 import com.sharjeel.newsapp.ui.screens.notification.NotificationScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.AdvancedSplashScreen
 import com.sharjeel.newsapp.ui.screens.onboarding.FillProfileScreen
@@ -58,6 +62,7 @@ sealed class Screen(val route: String) {
     data object Notification : Screen("notification")
     data object LatestNews : Screen("latest_news")
     data object Search : Screen("search")
+    data object Explore : Screen("explore")
     data object AuthorProfile : Screen("author_profile/{sourceId}") {
         fun createRoute(sourceId: String) = "author_profile/$sourceId"
     }
@@ -75,6 +80,8 @@ fun NavGraph(
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val detailViewModel: DetailViewModel = hiltViewModel()
+    val homeViewModel: com.sharjeel.newsapp.ui.screens.home.HomeViewModel = hiltViewModel()
 
     NavHost(
         navController = navController,
@@ -152,7 +159,7 @@ fun NavGraph(
             var navigateToCongratulations by remember { mutableStateOf(false) }
             var navigateToOtp by remember { mutableStateOf<String?>(null) }
             var navigateToResetPassword by remember { mutableStateOf(false) }
-            
+
             LaunchedEffect(key1 = true) {
                 viewModel.eventFlow.collectLatest { event ->
                     when (event) {
@@ -244,7 +251,7 @@ fun NavGraph(
         composable(Screen.SignupOtp.route) {
             val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
             val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
-            
+
             LaunchedEffect(key1 = true) {
                 viewModel.eventFlow.collectLatest { event ->
                     if (event is AuthViewModel.UiEvent.NavigateToOnboarding) {
@@ -303,7 +310,7 @@ fun NavGraph(
         composable(Screen.FillProfile.route) {
             val backStackEntry = remember(it) { navController.getBackStackEntry(Screen.Signup.route) }
             val viewModel: AuthViewModel = hiltViewModel(backStackEntry)
-            
+
             LaunchedEffect(key1 = true) {
                 viewModel.eventFlow.collectLatest { event ->
                     if (event is AuthViewModel.UiEvent.NavigateToHome) {
@@ -362,7 +369,13 @@ fun NavGraph(
                     navController.navigate(Screen.EditProfile.route)
                 },
                 onNewsItemClick = { url: String ->
-                    // Navigate to detail
+                    val foundArticle = homeViewModel.trendingNews.value.find { it.url == url }
+                        ?: homeViewModel.latestNews.value.find { it.url == url }
+
+                    if (foundArticle != null) {
+                        detailViewModel.setArticle(foundArticle)
+                        navController.navigate(Screen.NewsDetail.route)
+                    }
                 },
                 onCreateNewsClick = {
                     navController.navigate(Screen.CreateNews.route)
@@ -374,8 +387,29 @@ fun NavGraph(
                 }
             )
         }
+        composable(Screen.Explore.route) {
+            val exploreViewModel: ExploreViewModel = hiltViewModel()
+            ExploreScreen(
+                onSearchClick = {
+                    navController.navigate(Screen.Search.route)
+                },
+                onAuthorClick = { sourceId: String ->
+                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
+                },
+                onNewsItemClick = { url: String ->
+                    val foundArticle = exploreViewModel.popularNews.value.find { it.url == url }
+                    if (foundArticle != null) {
+                        detailViewModel.setArticle(foundArticle)
+                        navController.navigate(Screen.NewsDetail.route)
+                    }
+                },
+                viewModel = exploreViewModel
+            )
+        }
         composable(Screen.NewsDetail.route) {
+            val article = detailViewModel.article.value
             DetailScreen(
+                article = article,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -409,13 +443,19 @@ fun NavGraph(
             )
         }
         composable(Screen.Trending.route) {
+            val trendingViewModel: com.sharjeel.newsapp.ui.screens.trending.TrendingViewModel = hiltViewModel()
             TrendingScreen(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onNewsItemClick = {
-                    navController.navigate(Screen.NewsDetail.route)
-                }
+                onNewsItemClick = { url: String ->
+                    val foundArticle = trendingViewModel.trendingNews.value.find { it.url == url }
+                    if (foundArticle != null) {
+                        detailViewModel.setArticle(foundArticle)
+                        navController.navigate(Screen.NewsDetail.route)
+                    }
+                },
+                viewModel = trendingViewModel
             )
         }
         composable(Screen.Notification.route) {
@@ -426,6 +466,7 @@ fun NavGraph(
             )
         }
         composable(Screen.LatestNews.route) {
+            val latestNewsViewModel: LatestNewsViewModel = hiltViewModel()
             LatestNewsScreen(
                 onBackClick = {
                     navController.popBackStack()
@@ -434,11 +475,17 @@ fun NavGraph(
                     navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
                 },
                 onNewsItemClick = { url: String ->
-                    // Navigate to detail
-                }
+                    val foundArticle = latestNewsViewModel.latestNews.value.find { it.url == url }
+                    if (foundArticle != null) {
+                        detailViewModel.setArticle(foundArticle)
+                        navController.navigate(Screen.NewsDetail.route)
+                    }
+                },
+                viewModel = latestNewsViewModel
             )
         }
         composable(Screen.Search.route) {
+            val searchViewModel: com.sharjeel.newsapp.ui.screens.search.SearchViewModel = hiltViewModel()
             SearchScreen(
                 onAuthorClick = { sourceId: String ->
                     navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
@@ -447,8 +494,13 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onNewsItemClick = { url: String ->
-                    // Navigate to detail
-                }
+                    val foundArticle = searchViewModel.searchResults.value.find { it.url == url }
+                    if (foundArticle != null) {
+                        detailViewModel.setArticle(foundArticle)
+                        navController.navigate(Screen.NewsDetail.route)
+                    }
+                },
+                viewModel = searchViewModel
             )
         }
         composable(
