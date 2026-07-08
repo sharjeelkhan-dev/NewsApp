@@ -19,10 +19,6 @@ class DetailViewModel @Inject constructor(
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
 
-    /**
-     * In a real app, you would fetch by ID or URL. 
-     * For this implementation, we use a shared state or pass via navigation.
-     */
     fun setArticle(article: Article) {
         _article.value = article
     }
