@@ -135,8 +135,6 @@ class HomeViewModel @Inject constructor(
             delay(500.milliseconds)
             _isLoading.value = true
             try {
-
-
                 // Temporary log to trace trigger
                 android.util.Log.d("HomeViewModel", "Searching for: $query in domains: $pakistaniDomains")
             } catch (e: Exception) {
@@ -144,6 +142,41 @@ class HomeViewModel @Inject constructor(
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    fun bookmarkArticle(article: Article) {
+        viewModelScope.launch {
+            val result = newsRepository.bookmarkArticle(article)
+            if (result.isSuccess) {
+                android.util.Log.d("HomeViewModel", "Article bookmarked: ${article.title}")
+            } else {
+                android.util.Log.e("HomeViewModel", "Failed to bookmark: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+
+    fun hideArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.hideArticle(article.url)
+            // Local update to remove from lists immediately
+            _trendingNews.value = _trendingNews.value.filter { it.url != article.url }
+            _latestNews.value = _latestNews.value.filter { it.url != article.url }
+        }
+    }
+
+    fun blockSource(sourceId: String) {
+        viewModelScope.launch {
+            newsRepository.blockSource(sourceId)
+            // Remove all news from this source
+            _trendingNews.value = _trendingNews.value.filter { it.sourceId != sourceId }
+            _latestNews.value = _latestNews.value.filter { it.sourceId != sourceId }
+        }
+    }
+
+    fun reportArticle(article: Article, reason: String) {
+        viewModelScope.launch {
+            newsRepository.reportArticle(article.url, reason)
         }
     }
 }

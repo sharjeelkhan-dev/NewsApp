@@ -31,7 +31,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,39 +46,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sharjeel.newsapp.R
+import com.sharjeel.newsapp.domain.model.Article
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.util.SmoothScrollConfig
 import com.sharjeel.newsapp.util.TimeUtils
 import java.net.URI
 
-// 1. DATA MODELS (FIX: Image type updated to String for dynamic URLs)
+// 1. DATA MODELS
 data class ExploreTopicData(val name: String, val description: String, val imageUrl: String, val isSaved: Boolean)
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 760)
-@Composable
-fun ExploreScreenPreview() {
-    NewsAppTheme {
-        ExploreScreen(onSearchClick = {}, onAuthorClick = { _ -> })
-    }
-}
 
 @Composable
 fun ExploreScreen(
     onSearchClick: () -> Unit,
-    onAuthorClick: (String) -> Unit,
     onNewsItemClick: (String) -> Unit = { _ -> },
     viewModel: ExploreViewModel = hiltViewModel()
 ) {
     val popularNews by viewModel.popularNews
     val isLoading by viewModel.isLoading
+    var selectedArticleForActions by remember { mutableStateOf<Article?>(null) }
 
-    // FIX: Professional Unsplash Mockup Images perfectly mapped for each topic category
+    // Professional Unsplash Mockup Images perfectly mapped for each topic category
     val topics = remember {
         androidx.compose.runtime.mutableStateListOf(
             ExploreTopicData(
@@ -112,22 +108,16 @@ fun ExploreScreen(
                 .padding(padding)
                 .padding(horizontal = 24.dp)
         ) {
-
-            // ================= FIXED HEADER AREA =================
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Explore",
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Explore",
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (isLoading && popularNews.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -210,8 +200,8 @@ fun ExploreScreen(
                         itemsIndexed(items = popularNews, key = { idx, item -> "pop_${item.url}_$idx" }) { _, article ->
                             ExploreBookmarkStyleItem(
                                 article = article,
-                                onAuthorClick = onAuthorClick,
-                                onItemClick = onNewsItemClick
+                                onItemClick = onNewsItemClick,
+                                onActionsClick = { selectedArticleForActions = article }
                             )
                         }
                     }
@@ -219,9 +209,19 @@ fun ExploreScreen(
             }
         }
     }
-}
 
-// ================= COMPONENT DESIGNS =================
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                viewModel.bookmarkArticle(article)
+            }
+        )
+    }
+}
 
 @Composable
 fun TopicUiItem(topic: ExploreTopicData, onToggleSave: () -> Unit) {
@@ -229,12 +229,11 @@ fun TopicUiItem(topic: ExploreTopicData, onToggleSave: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // FIX: Renders the beautiful Unsplash mockup URLs using Coil asynchronously
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(topic.imageUrl)
                 .crossfade(true)
-                .placeholder(R.drawable.newsimages) // fallback indicator
+                .placeholder(R.drawable.newsimages)
                 .error(R.drawable.newsimages)
                 .build(),
             contentDescription = null,
@@ -302,9 +301,9 @@ fun TopicUiItem(topic: ExploreTopicData, onToggleSave: () -> Unit) {
 
 @Composable
 fun ExploreBookmarkStyleItem(
-    article: com.sharjeel.newsapp.domain.model.Article,
-    onAuthorClick: (String) -> Unit,
-    onItemClick: (String) -> Unit = { _ -> }
+    article: Article,
+    onItemClick: (String) -> Unit,
+    onActionsClick: () -> Unit
 ) {
     val logoUrl = remember(article.url) {
         try {
@@ -325,7 +324,6 @@ fun ExploreBookmarkStyleItem(
             .fillMaxWidth()
             .clickable { onItemClick(article.url) }
     ) {
-        // Main Image Area
         if (article.urlToImage.isNotEmpty()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -351,9 +349,8 @@ fun ExploreBookmarkStyleItem(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Category / Source Label
         Text(
             text = article.sourceName,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -362,7 +359,6 @@ fun ExploreBookmarkStyleItem(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Article Title
         Text(
             text = article.title,
             style = MaterialTheme.typography.titleMedium.copy(
@@ -374,18 +370,17 @@ fun ExploreBookmarkStyleItem(
             overflow = TextOverflow.Ellipsis
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Structural flow adjustment to prevent vertical overlapping layout crashes
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 modifier = Modifier
                     .weight(1f, fill = false)
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable { onAuthorClick(article.sourceId) },
+                    .clip(RoundedCornerShape(4.dp)),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (logoUrl.isNotEmpty()) {
@@ -399,8 +394,7 @@ fun ExploreBookmarkStyleItem(
                             .size(20.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        contentScale = ContentScale.Fit,
-                        error = painterResource(id = R.drawable.ic_launcher_foreground)
+                        contentScale = ContentScale.Fit
                     )
                 } else {
                     Box(
@@ -430,11 +424,7 @@ fun ExploreBookmarkStyleItem(
                 )
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.width(12.dp))
-
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painter = painterResource(id = R.drawable.clock_line_icon),
                     contentDescription = null,
@@ -451,10 +441,10 @@ fun ExploreBookmarkStyleItem(
                     maxLines = 1
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 IconButton(
-                    onClick = { /* Action popup context options */ },
+                    onClick = onActionsClick,
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
@@ -466,5 +456,13 @@ fun ExploreBookmarkStyleItem(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ExploreScreenContentPreview() {
+    NewsAppTheme {
+        ExploreScreen(onSearchClick = {})
     }
 }

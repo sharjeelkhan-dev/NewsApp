@@ -33,7 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +53,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.util.TimeUtils
@@ -59,12 +62,12 @@ import com.sharjeel.newsapp.util.TimeUtils
 @Composable
 fun TrendingScreen(
     onBackClick: () -> Unit,
-    onAuthorClick: (String) -> Unit = {},
     onNewsItemClick: (String) -> Unit = {},
     viewModel: TrendingViewModel = hiltViewModel()
 ) {
     val trendingNews by viewModel.trendingNews
     val isLoading by viewModel.isLoading
+    var selectedArticleForActions by remember { mutableStateOf<com.sharjeel.newsapp.domain.model.Article?>(null) }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -125,12 +128,24 @@ fun TrendingScreen(
                         image = R.drawable.newsimages,
                         remoteImageUrl = article.urlToImage,
                         articleUrl = article.url,
-                        onAuthorClick = { onAuthorClick(article.sourceId) },
-                        onItemClick = { onNewsItemClick(article.url) }
+                        onItemClick = { onNewsItemClick(article.url) },
+                        onActionsClick = { selectedArticleForActions = article }
                     )
                 }
             }
         }
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                viewModel.bookmarkArticle(article)
+            }
+        )
     }
 }
 
@@ -143,8 +158,8 @@ fun TrendingItem(
     image: Int,
     remoteImageUrl: String? = "",
     articleUrl: String = "",
-    onAuthorClick: () -> Unit = {},
-    onItemClick: () -> Unit = {}
+    onItemClick: () -> Unit = {},
+    onActionsClick: () -> Unit = {}
 ) {
     // Google Favicon service use kar rahe hain Home Screen ke sath exact sync ke liye
     val logoDomain = remember(articleUrl) { if (!articleUrl.isNullOrBlank()) TimeUtils.getDomain(articleUrl) else null }
@@ -156,7 +171,7 @@ fun TrendingItem(
             .fillMaxWidth()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                indication = androidx.compose.material3.ripple(),
                 onClick = onItemClick
             )
     ) {
@@ -202,8 +217,6 @@ fun TrendingItem(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        // META META ROW ROW: Fixed Responsive Layout Constraints
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -214,7 +227,6 @@ fun TrendingItem(
                 modifier = Modifier
                     .weight(1f) // Bounded priority constraints
                     .clip(RoundedCornerShape(4.dp))
-                    .clickable(onClick = onAuthorClick)
             ) {
                 if (!logoUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -278,7 +290,7 @@ fun TrendingItem(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 IconButton(
-                    onClick = { /* Actions */ },
+                    onClick = onActionsClick,
                     modifier = Modifier.size(16.dp)
                 ) {
                     Icon(

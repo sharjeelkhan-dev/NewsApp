@@ -4,8 +4,10 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sharjeel.newsapp.domain.model.Article
 import com.sharjeel.newsapp.domain.model.User
 import com.sharjeel.newsapp.domain.repository.AuthRepository
+import com.sharjeel.newsapp.domain.repository.NewsRepository
 import com.sharjeel.newsapp.util.DataStoreManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,12 +17,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val repository: AuthRepository,
+    private val authRepository: AuthRepository,
+    private val newsRepository: NewsRepository,
     private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
 
     private val _userState = mutableStateOf<User?>(null)
     val userState: State<User?> = _userState
+
+    private val _userNews = mutableStateOf<List<Article>>(emptyList())
+    val userNews: State<List<Article>> = _userNews
 
     private val _isLoading = mutableStateOf(false)
     val isLoading: State<Boolean> = _isLoading
@@ -37,16 +43,19 @@ class ProfileViewModel @Inject constructor(
             _isLoading.value = true
             
             // Step 1: Check for local image first
-            val localPath = repository.getLocalProfileImage()
+            val localPath = authRepository.getLocalProfileImage()
             
             // Step 2: Immediate fetch from Firestore
-            val uid = repository.currentUser?.uid
+            val uid = authRepository.currentUser?.uid
             if (uid != null) {
-                repository.getUserProfile(uid).onSuccess { user ->
+                authRepository.getUserProfile(uid).onSuccess { user ->
                     _userState.value = user?.copy(
                         profileImageUrl = localPath ?: user.profileImageUrl
                     )
                     _isLoading.value = false
+                    
+                    // Load news based on user topics
+                    user?.topics?.let { loadNews(it) }
                 }.onFailure {
                     _isLoading.value = false
                 }
@@ -55,22 +64,27 @@ class ProfileViewModel @Inject constructor(
             }
 
             // Step 3: Listen for background updates
-            repository.getCurrentUserProfile().collect { user ->
+            authRepository.getCurrentUserProfile().collect { user ->
                 _userState.value = user?.copy(
-                    profileImageUrl = repository.getLocalProfileImage() ?: user.profileImageUrl
+                    profileImageUrl = authRepository.getLocalProfileImage() ?: user.profileImageUrl
                 )
             }
         }
     }
 
-    fun loadUserProfile() {
-        // Redundant with observeUserProfile, but keeping for compatibility
+    private fun loadNews(interests: List<String>) {
+        if (interests.isEmpty()) return
+        viewModelScope.launch {
+            newsRepository.getNewsByInterests(interests).onSuccess { articles ->
+                _userNews.value = articles
+            }
+        }
     }
 
     fun uploadProfileImage(uri: android.net.Uri) {
         viewModelScope.launch {
             _isLoading.value = true
-            repository.saveLocalProfileImage(uri).onSuccess { path ->
+            authRepository.saveLocalProfileImage(uri).onSuccess { path ->
                 // Image is saved locally on device
                 val currentUser = _userState.value ?: User()
                 _userState.value = currentUser.copy(profileImageUrl = path)
@@ -101,7 +115,7 @@ class ProfileViewModel @Inject constructor(
             )
             
             _isLoading.value = true
-            repository.saveUserProfile(updatedUser).onSuccess {
+            authRepository.saveUserProfile(updatedUser).onSuccess {
                 _userState.value = updatedUser
                 _eventFlow.emit(UiEvent.ProfileUpdated)
             }.onFailure { e ->
@@ -113,7 +127,7 @@ class ProfileViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            repository.logout()
+            authRepository.logout()
             dataStoreManager.saveLoggedIn(false)
             _eventFlow.emit(UiEvent.LoggedOut)
         }

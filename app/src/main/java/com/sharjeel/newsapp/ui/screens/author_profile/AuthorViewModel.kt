@@ -63,4 +63,14 @@ class AuthorViewModel @Inject constructor(
             }
         }
     }
+
+    fun toggleBookmark(article: Article) {
+        viewModelScope.launch {
+            if (newsRepository.isArticleBookmarked(article.url)) {
+                newsRepository.removeBookmark(article.url)
+            } else {
+                newsRepository.bookmarkArticle(article)
+            }
+        }
+    }
 }

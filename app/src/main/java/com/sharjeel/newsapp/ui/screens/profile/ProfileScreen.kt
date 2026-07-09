@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,11 +54,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.sharjeel.newsapp.R
+import com.sharjeel.newsapp.domain.model.Article
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.util.SmoothScrollConfig
+import com.sharjeel.newsapp.util.TimeUtils
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -65,17 +70,20 @@ fun ProfileScreen(
     onEditProfileClick: () -> Unit,
     onLogoutClick: () -> Unit = {},
     onNewsItemClick: (String) -> Unit = { _ -> },
+    onAuthorClick: (String) -> Unit = { _ -> },
     onCreateNewsClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val user by viewModel.userState
+    val userNews by viewModel.userNews
     val isLoading by viewModel.isLoading
     val uriHandler = LocalUriHandler.current
 
-    var selectedTab by remember { mutableIntStateOf(1) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("News", "Recent")
     val listState = rememberLazyListState()
     val flingBehavior = SmoothScrollConfig.rememberSmoothFlingBehavior()
+    var selectedArticleForActions by remember { mutableStateOf<Article?>(null) }
 
     LaunchedEffect(key1 = true) {
         viewModel.eventFlow.collectLatest { event ->
@@ -196,8 +204,8 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             ProfileStat(number = "0", label = "Followers")
-                            ProfileStat(number = "0", label = "Following")
-                            ProfileStat(number = "0", label = "News")
+                            ProfileStat(number = user?.sources?.size?.toString() ?: "0", label = "Following")
+                            ProfileStat(number = userNews.size.toString(), label = "News")
                         }
                     }
 
@@ -247,7 +255,16 @@ fun ProfileScreen(
                             )
                         }
                         Button(
-                            onClick = {},
+                            onClick = {
+                                user?.website?.let { url ->
+                                    if (url.isNotBlank()) {
+                                        val finalUrl = if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                                            "https://$url"
+                                        } else url
+                                        try { uriHandler.openUri(finalUrl) } catch (e: Exception) { /* Log error */ }
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(48.dp),
@@ -267,9 +284,6 @@ fun ProfileScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
                 // TABS
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -342,45 +356,61 @@ fun ProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    // Logic for empty news
-                    item {
-                        if (selectedTab == 0) {
+                    if (selectedTab == 0) {
+                        if (userNews.isEmpty() && !isLoading) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No news published yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        } else {
+                            items(userNews) { article ->
+                                NewsItem(
+                                    category = article.sourceName,
+                                    title = article.title,
+                                    publisher = article.sourceName,
+                                    publishedAt = TimeUtils.formatRelativeTime(article.publishedAt),
+                                    image = R.drawable.newsimages,
+                                    remoteImageUrl = article.urlToImage,
+                                    articleUrl = article.url,
+                                    onItemClick = { onNewsItemClick(article.url) },
+                                    onActionsClick = {
+                                        selectedArticleForActions = article
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (selectedTab == 1) {
+                        item {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 40.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("No news published yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("No recent activity.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                        }
-                    }
-
-                    if (selectedTab == 1) {
-                        items(count = 2) { index ->
-                            val sampleCategories = listOf("Technology", "Business")
-                            val sampleTitles = listOf(
-                                "Firebase App Check initialized successfully",
-                                "New News App UI updated with Firestore"
-                            )
-                            val sampleImages = listOf(R.drawable.newsimages, R.drawable.newsimages2)
-
-                            NewsItem(
-                                category = sampleCategories[index],
-                                title = sampleTitles[index],
-                                publisher = user?.fullName ?: user?.username ?: "Me",
-                                publishedAt = "Just now",
-                                image = sampleImages[index],
-                                remoteImageUrl = "",
-                                articleUrl = "",
-                                onAuthorClick = { },
-                                onItemClick = { onNewsItemClick("") }
-                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName
+        )
     }
 }
 

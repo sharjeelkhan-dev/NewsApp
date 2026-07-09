@@ -70,7 +70,8 @@ import org.jsoup.nodes.Document
 fun DetailScreen(
     article: com.sharjeel.newsapp.domain.model.Article? = null,
     onBackClick: () -> Unit,
-    onCommentClick: () -> Unit
+    onCommentClick: () -> Unit,
+    onAuthorClick: (String) -> Unit = {}
 ) {
     var isFollowing by remember { mutableStateOf(true) }
     var isLiked by remember { mutableStateOf(false) }
@@ -166,6 +167,8 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val sourceClickModifier = Modifier.clickable { article?.sourceId?.let { onAuthorClick(it) } }
+                    
                     if (logoUrl.isNotEmpty()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
@@ -175,16 +178,27 @@ fun DetailScreen(
                                 .fallback(R.drawable.ic_launcher_foreground)
                                 .build(),
                             contentDescription = "Source Logo",
-                            modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .then(sourceClickModifier),
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Box(modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(0xFFBB1919)), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFBB1919))
+                                .then(sourceClickModifier), 
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(text = (article?.sourceName ?: "N").take(1).uppercase(), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f).then(sourceClickModifier)) {
                         Text(text = article?.sourceName ?: "Unknown Source", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(text = article?.publishedAt?.let { TimeUtils.formatRelativeTime(it) } ?: "Just now", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp))
                     }

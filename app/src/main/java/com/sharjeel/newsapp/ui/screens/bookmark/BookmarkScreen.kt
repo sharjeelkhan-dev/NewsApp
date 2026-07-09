@@ -1,55 +1,44 @@
 package com.sharjeel.newsapp.ui.screens.bookmark
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.util.SmoothScrollConfig
 
-@Preview(showBackground = true)
-@Composable
-fun BookmarkScreenPreview() {
-    NewsAppTheme {
-        BookmarkScreen()
-    }
-}
-
 @Composable
 fun BookmarkScreen(
-    onNewsItemClick: (String) -> Unit = { _ -> }
+    onNewsItemClick: (String) -> Unit = { _ -> },
+    viewModel: BookmarkViewModel = hiltViewModel()
 ) {
+    val bookmarkedArticles by viewModel.bookmarkedArticles
+    val isLoading by viewModel.isLoading
+    
     var searchQuery by remember { mutableStateOf("") }
+    val filteredArticles = remember(bookmarkedArticles, searchQuery) {
+        if (searchQuery.isBlank()) bookmarkedArticles
+        else bookmarkedArticles.filter { it.title.contains(searchQuery, ignoreCase = true) }
+    }
+
     val listState = rememberLazyListState()
     val flingBehavior = SmoothScrollConfig.rememberSmoothFlingBehavior()
+    var selectedArticleForActions by remember { mutableStateOf<com.sharjeel.newsapp.domain.model.Article?>(null) }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -79,7 +68,7 @@ fun BookmarkScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        "Search",
+                        "Search in bookmarks",
                         style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                     )
                 },
@@ -90,16 +79,6 @@ fun BookmarkScreen(
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                },
-                trailingIcon = {
-                    IconButton(onClick = { /* TODO: Implement filter */ }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.sliders_icon),
-                            contentDescription = "Filter",
-                            modifier = Modifier.size(22.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 },
                 shape = RoundedCornerShape(6.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -112,28 +91,63 @@ fun BookmarkScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Bookmarked News List
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                state = listState,
-                flingBehavior = flingBehavior,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(count = 5, key = { it }) { index ->
-                    NewsItem(
-                        category = "Europe",
-                        title = "Ukraine's President Zelenskyy to BBC: Blood money being paid for Russian oil",
-                        publisher = "BBC News",
-                        publishedAt = "14m ago",
-                        image = R.drawable.newsimages2,
-                        remoteImageUrl = "",
-                        articleUrl = "https://www.bbc.com/news/world-europe-61124148",
-                        onAuthorClick = { /* Bookmark screens navigation usually goes to detail or author */ },
-                        onItemClick = { onNewsItemClick("https://www.bbc.com/news/world-europe-61124148") }
-                    )
+            if (isLoading && bookmarkedArticles.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            } else if (filteredArticles.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.saved_bookmark_icon),
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = if (searchQuery.isEmpty()) "No bookmarks yet" else "No matching bookmarks",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                // Bookmarked News List
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().weight(1f),
+                    state = listState,
+                    flingBehavior = flingBehavior,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    items(filteredArticles, key = { it.url }) { article ->
+                        NewsItem(
+                            category = article.sourceName,
+                            title = article.title,
+                            publisher = article.sourceName,
+                            publishedAt = article.publishedAt,
+                            image = R.drawable.newsimages2,
+                            remoteImageUrl = article.urlToImage,
+                            articleUrl = article.url,
+                            onItemClick = { onNewsItemClick(article.url) },
+                            onActionsClick = { selectedArticleForActions = article }
+                        )
+                    }
                 }
             }
         }
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                viewModel.removeBookmark(article.url)
+            },
+            isAlreadyBookmarked = true
+        )
     }
 }

@@ -70,7 +70,6 @@ fun MainScreen(
     onNotificationClick: () -> Unit,
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onAuthorClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onEditProfileClick: () -> Unit,
     onNewsItemClick: (String) -> Unit,
@@ -98,7 +97,6 @@ fun MainScreen(
                     onNotificationClick = onNotificationClick,
                     onSeeAllLatestClick = onSeeAllLatestClick,
                     onSearchClick = onSearchClick,
-                    onAuthorClick = onAuthorClick,
                     onFilterClick = { /* TODO: Implement filter */ },
                     onNewsItemClick = onNewsItemClick
                 )
@@ -106,7 +104,6 @@ fun MainScreen(
             composable(BottomBarScreen.Explore.route) {
                 ExploreScreen(
                     onSearchClick = onSearchClick,
-                    onAuthorClick = { sourceId -> onAuthorClick(sourceId) },
                     onNewsItemClick = { url -> onNewsItemClick(url) }
                 )
             }

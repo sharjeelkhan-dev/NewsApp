@@ -36,4 +36,42 @@ class SearchViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+
+    fun followSource(sourceId: String) {
+        viewModelScope.launch {
+            newsRepository.followSource(sourceId)
+        }
+    }
+
+    fun unfollowSource(sourceId: String) {
+        viewModelScope.launch {
+            newsRepository.unfollowSource(sourceId)
+        }
+    }
+
+    fun bookmarkArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.bookmarkArticle(article)
+        }
+    }
+
+    fun hideArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.hideArticle(article.url)
+            _searchResults.value = _searchResults.value.filter { it.url != article.url }
+        }
+    }
+
+    fun blockSource(sourceId: String) {
+        viewModelScope.launch {
+            newsRepository.blockSource(sourceId)
+            _searchResults.value = _searchResults.value.filter { it.sourceId != sourceId }
+        }
+    }
+
+    fun reportArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.reportArticle(article.url, "Reported from Search")
+        }
+    }
 }

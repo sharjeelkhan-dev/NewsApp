@@ -41,7 +41,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 
@@ -76,6 +79,7 @@ fun AuthorProfileScreen(
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("News", "Recent")
+    var selectedArticleForActions by remember { mutableStateOf<com.sharjeel.newsapp.domain.model.Article?>(null) }
 
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -306,13 +310,25 @@ fun AuthorProfileScreen(
                             image = R.drawable.newsimages2,
                             remoteImageUrl = article.urlToImage,
                             articleUrl = article.url,
-                            onAuthorClick = { /* Already on profile */ },
-                            onItemClick = { /* Detail */ }
+                            onItemClick = { /* Detail */ },
+                            onActionsClick = { selectedArticleForActions = article }
                         )
                     }
                 }
             }
         }
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                viewModel.toggleBookmark(article)
+            }
+        )
     }
 }
 

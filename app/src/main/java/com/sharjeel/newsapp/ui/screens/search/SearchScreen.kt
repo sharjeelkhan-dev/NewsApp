@@ -1,9 +1,12 @@
 package com.sharjeel.newsapp.ui.screens.search
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -36,8 +40,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,7 +52,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +66,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.FilterBottomSheet
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
@@ -68,14 +75,46 @@ import com.sharjeel.newsapp.util.TimeUtils
 
 @Composable
 fun SearchScreen(
-    onAuthorClick: (String) -> Unit,
     onBackClick: () -> Unit,
     onNewsItemClick: (String) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults
     val isLoading by viewModel.isLoading
+
+    SearchScreenContent(
+        searchResults = searchResults,
+        isLoading = isLoading,
+        onSearch = { viewModel.searchNews(it) },
+        onFollowSource = { viewModel.followSource(it) },
+        onUnfollowSource = { viewModel.unfollowSource(it) },
+        onBookmarkArticle = { viewModel.bookmarkArticle(it) },
+        onHideArticle = { viewModel.hideArticle(it) },
+        onBlockSource = { viewModel.blockSource(it) },
+        onReportArticle = { viewModel.reportArticle(it) },
+        onBackClick = onBackClick,
+        onNewsItemClick = onNewsItemClick
+    )
+}
+
+@Composable
+fun SearchScreenContent(
+    searchResults: List<com.sharjeel.newsapp.domain.model.Article>,
+    isLoading: Boolean,
+    onSearch: (String) -> Unit,
+    onFollowSource: (String) -> Unit,
+    onUnfollowSource: (String) -> Unit,
+    onBookmarkArticle: (com.sharjeel.newsapp.domain.model.Article) -> Unit,
+    onHideArticle: (com.sharjeel.newsapp.domain.model.Article) -> Unit,
+    onBlockSource: (String) -> Unit,
+    onReportArticle: (com.sharjeel.newsapp.domain.model.Article) -> Unit,
+    onBackClick: () -> Unit,
+    onNewsItemClick: (String) -> Unit,
+    onActionsClick: (com.sharjeel.newsapp.domain.model.Article) -> Unit = {}
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var selectedArticleForActions by remember { mutableStateOf<com.sharjeel.newsapp.domain.model.Article?>(null) }
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("News", "Topics", "Author")
@@ -123,7 +162,7 @@ fun SearchScreen(
                     value = searchQuery,
                     onValueChange = {
                         searchQuery = it
-                        viewModel.searchNews(it)
+                        onSearch(it)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
@@ -141,14 +180,24 @@ fun SearchScreen(
                         )
                     },
                     trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = {
-                                searchQuery = ""
-                                viewModel.searchNews("")
-                            }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    searchQuery = ""
+                                    onSearch("")
+                                }) {
+                                    Icon(
+                                        Icons.Default.Clear,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { showFilterSheet = true }) {
                                 Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = "Clear",
+                                    painter = painterResource(id = R.drawable.sliders_icon),
+                                    contentDescription = "Filter",
+                                    modifier = Modifier.size(22.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -167,7 +216,6 @@ fun SearchScreen(
                 if (searchQuery.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Custom Tabs - Only show when typing
                     TabRow(
                         selectedTabIndex = selectedTab,
                         containerColor = Color.Transparent,
@@ -179,30 +227,47 @@ fun SearchScreen(
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                             )
                         },
-                        indicator = { tabPositions ->
-                            if (selectedTab < tabPositions.size) {
-                                TabRowDefaults.SecondaryIndicator(
-                                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                    color = BluePrimary
-                                )
-                            }
-                        }
+                        indicator = { } // Hide default indicator to use per-tab animated line
                     ) {
                         tabs.forEachIndexed { index, title ->
+                            val isSelected = selectedTab == index
+                            val animationProgress by animateFloatAsState(
+                                targetValue = if (isSelected) 1f else 0f,
+                                animationSpec = tween(durationMillis = 250),
+                                label = "LineAnim"
+                            )
+
                             Tab(
-                                selected = selectedTab == index,
+                                selected = isSelected,
                                 onClick = { selectedTab = index },
                                 text = {
                                     Text(
                                         text = title,
+                                        modifier = Modifier
+                                            .padding(bottom = 8.dp)
+                                            .drawBehind {
+                                                if (animationProgress > 0f) {
+                                                    val strokeWidth = 2.dp.toPx()
+                                                    val y = size.height + 4.dp.toPx()
+                                                    val lineWidth = size.width * animationProgress
+                                                    val startX = (size.width - lineWidth) / 2
+                                                    drawLine(
+                                                        color = BluePrimary,
+                                                        start = Offset(startX, y),
+                                                        end = Offset(startX + lineWidth, y),
+                                                        strokeWidth = strokeWidth,
+                                                        cap = StrokeCap.Round
+                                                    )
+                                                }
+                                            },
                                         style = MaterialTheme.typography.bodyLarge.copy(
-                                            fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
-                                            fontSize = 16.sp
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                            fontSize = 16.sp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     )
                                 },
-                                selectedContentColor = MaterialTheme.colorScheme.onBackground,
-                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                interactionSource = remember { MutableInteractionSource() }
                             )
                         }
                     }
@@ -224,7 +289,7 @@ fun SearchScreen(
                     recentSearches = recentSearches,
                     onSearchClick = {
                         searchQuery = it
-                        viewModel.searchNews(it)
+                        onSearch(it)
                     },
                     onRemoveClick = { recentSearches.remove(it) },
                     onClearAll = { recentSearches.clear() }
@@ -241,7 +306,7 @@ fun SearchScreen(
                             0 -> NewsTabContent(
                                 articles = searchResults,
                                 onNewsItemClick = onNewsItemClick,
-                                onAuthorClick = onAuthorClick
+                                onActionsClick = { selectedArticleForActions = it }
                             )
                             1 -> TopicsTabContent(
                                 topics = topicsState,
@@ -257,16 +322,58 @@ fun SearchScreen(
                                 onToggleFollow = { author ->
                                     val index = authorsState.indexOf(author)
                                     if (index != -1) {
-                                        authorsState[index] = author.copy(isFollowing = !author.isFollowing)
+                                        val isFollowing = !author.isFollowing
+                                        authorsState[index] = author.copy(isFollowing = isFollowing)
+                                        
+                                        // Update in Firestore
+                                        val sourceId = author.name.lowercase().replace(" ", "-")
+                                        if (isFollowing) {
+                                            onFollowSource(sourceId)
+                                        } else {
+                                            onUnfollowSource(sourceId)
+                                        }
                                     }
-                                },
-                                onAuthorClick = onAuthorClick
+                                }
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showFilterSheet) {
+        FilterBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            onApplyFilters = { filter ->
+                showFilterSheet = false
+                // Handle filter logic in ViewModel
+            },
+            onResetFilters = {
+                showFilterSheet = false
+            }
+        )
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                onBookmarkArticle(article)
+            },
+            onHideClick = {
+                onHideArticle(article)
+            },
+            onBlockSourceClick = {
+                onBlockSource(article.sourceId)
+            },
+            onReportClick = {
+                onReportArticle(article)
+            }
+        )
     }
 }
 
@@ -293,6 +400,7 @@ fun RecentSearchesContent(
             TextButton(onClick = onClearAll) {
                 Text(
                     text = "Clear All",
+                    modifier = Modifier.offset(x = 5.dp),
                     style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                 )
             }
@@ -345,7 +453,7 @@ fun RecentSearchesContent(
 fun NewsTabContent(
     articles: List<com.sharjeel.newsapp.domain.model.Article>,
     onNewsItemClick: (String) -> Unit = {},
-    onAuthorClick: (String) -> Unit = {}
+    onActionsClick: (com.sharjeel.newsapp.domain.model.Article) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -353,17 +461,17 @@ fun NewsTabContent(
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         items(articles) { article ->
-            NewsItem(
-                category = article.sourceName,
-                title = article.title,
-                publisher = article.sourceName,
-                publishedAt = TimeUtils.formatRelativeTime(article.publishedAt),
-                image = R.drawable.newsimages,
-                remoteImageUrl = article.urlToImage,
-                articleUrl = article.url,
-                onAuthorClick = { onAuthorClick(article.sourceId) },
-                onItemClick = { onNewsItemClick(article.url) }
-            )
+                NewsItem(
+                    category = article.sourceName,
+                    title = article.title,
+                    publisher = article.sourceName,
+                    publishedAt = TimeUtils.formatRelativeTime(article.publishedAt),
+                    image = R.drawable.newsimages,
+                    remoteImageUrl = article.urlToImage,
+                    articleUrl = article.url,
+                    onItemClick = { onNewsItemClick(article.url) },
+                    onActionsClick = { onActionsClick(article) }
+                )
         }
     }
 }
@@ -390,8 +498,7 @@ fun TopicsTabContent(
 @Composable
 fun AuthorTabContent(
     authors: List<AuthorItemData>,
-    onToggleFollow: (AuthorItemData) -> Unit,
-    onAuthorClick: (String) -> Unit
+    onToggleFollow: (AuthorItemData) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -401,8 +508,7 @@ fun AuthorTabContent(
         items(authors) { author ->
             SearchAuthorItem(
                 author = author,
-                onToggleFollow = { onToggleFollow(author) },
-                onAuthorClick = { onAuthorClick("bbc-news") } // Placeholder
+                onToggleFollow = { onToggleFollow(author) }
             )
         }
     }
@@ -485,13 +591,10 @@ fun SearchTopicItem(
 @Composable
 fun SearchAuthorItem(
     author: AuthorItemData,
-    onToggleFollow: () -> Unit,
-    onAuthorClick: () -> Unit
+    onToggleFollow: () -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onAuthorClick() },
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -568,7 +671,19 @@ fun SearchAuthorItem(
 @Composable
 fun SearchScreenPreview() {
     NewsAppTheme {
-        SearchScreen(onAuthorClick = {}, onBackClick = {})
+        SearchScreenContent(
+            searchResults = emptyList(),
+            isLoading = false,
+            onSearch = {},
+            onFollowSource = {},
+            onUnfollowSource = {},
+            onBookmarkArticle = {},
+            onHideArticle = {},
+            onBlockSource = {},
+            onReportArticle = {},
+            onBackClick = {},
+            onNewsItemClick = {}
+        )
     }
 }
 
@@ -576,6 +691,18 @@ fun SearchScreenPreview() {
 @Composable
 fun SearchScreenDarkPreview() {
     NewsAppTheme {
-        SearchScreen(onAuthorClick = {}, onBackClick = {})
+        SearchScreenContent(
+            searchResults = emptyList(),
+            isLoading = false,
+            onSearch = {},
+            onFollowSource = {},
+            onUnfollowSource = {},
+            onBookmarkArticle = {},
+            onHideArticle = {},
+            onBlockSource = {},
+            onReportArticle = {},
+            onBackClick = {},
+            onNewsItemClick = {}
+        )
     }
 }

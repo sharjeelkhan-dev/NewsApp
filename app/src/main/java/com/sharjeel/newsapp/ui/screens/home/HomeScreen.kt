@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -59,6 +60,8 @@ import coil.request.ImageRequest
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AkhbarLogo
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.FilterBottomSheet
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.util.SmoothScrollConfig
@@ -106,9 +109,9 @@ fun HomeScreenPreview() {
             onNotificationClick = {},
             onSeeAllLatestClick = {},
             onSearchClick = {},
-            onAuthorClick = {},
             onFilterClick = {},
-            onNewsItemClick = {}
+            onNewsItemClick = {},
+            onActionsClick = {}
         )
     }
 }
@@ -119,7 +122,6 @@ fun HomeScreen(
     onNotificationClick: () -> Unit,
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onAuthorClick: (String) -> Unit,
     onFilterClick: () -> Unit = {},
     onNewsItemClick: (String) -> Unit = { _ -> },
     viewModel: HomeViewModel = hiltViewModel()
@@ -128,6 +130,8 @@ fun HomeScreen(
     val latestNews by viewModel.latestNews
     val isLoading by viewModel.isLoading
     var selectedCategory by remember { mutableStateOf("All") }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var selectedArticleForActions by remember { mutableStateOf<com.sharjeel.newsapp.domain.model.Article?>(null) }
 
     HomeScreenContent(
         trendingNews = trendingNews,
@@ -142,10 +146,46 @@ fun HomeScreen(
         onNotificationClick = onNotificationClick,
         onSeeAllLatestClick = onSeeAllLatestClick,
         onSearchClick = onSearchClick,
-        onAuthorClick = onAuthorClick,
-        onFilterClick = onFilterClick,
-        onNewsItemClick = onNewsItemClick
+        onFilterClick = { showFilterSheet = true },
+        onNewsItemClick = onNewsItemClick,
+        onActionsClick = { article ->
+            selectedArticleForActions = article
+        }
     )
+
+    if (showFilterSheet) {
+        FilterBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            onApplyFilters = { filter ->
+                showFilterSheet = false
+                // Handle filter (e.g. viewModel.applyFilter(filter))
+            },
+            onResetFilters = {
+                showFilterSheet = false
+            }
+        )
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                viewModel.bookmarkArticle(article)
+            },
+            onHideClick = {
+                viewModel.hideArticle(article)
+            },
+            onBlockSourceClick = {
+                viewModel.blockSource(article.sourceId)
+            },
+            onReportClick = {
+                viewModel.reportArticle(article, "Inappropriate")
+            }
+        )
+    }
 }
 
 @Composable
@@ -159,9 +199,9 @@ fun HomeScreenContent(
     onNotificationClick: () -> Unit,
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onAuthorClick: (String) -> Unit,
     onFilterClick: () -> Unit,
-    onNewsItemClick: (String) -> Unit
+    onNewsItemClick: (String) -> Unit,
+    onActionsClick: (com.sharjeel.newsapp.domain.model.Article) -> Unit
 ) {
     val categories = listOf("All", "Sports", "Politics", "Business", "Health", "Travel", "Science")
     val listState = rememberLazyListState()
@@ -278,8 +318,8 @@ fun HomeScreenContent(
                                 publishedAt = trendingItem.publishedAt,
                                 articleUrl = trendingItem.url,
                                 onSeeAllClick = onSeeAllTrendingClick,
-                                onAuthorClick = { onAuthorClick(trendingItem.sourceId) },
-                                onItemClick = { onNewsItemClick(trendingItem.url) }
+                                onItemClick = { onNewsItemClick(trendingItem.url) },
+                                onActionsClick = { onActionsClick(trendingItem) }
                             )
                         }
                     } else if (latestNews.isNotEmpty()) {
@@ -293,8 +333,8 @@ fun HomeScreenContent(
                                 publishedAt = fallbackItem.publishedAt,
                                 articleUrl = fallbackItem.url,
                                 onSeeAllClick = onSeeAllTrendingClick,
-                                onAuthorClick = { onAuthorClick(fallbackItem.sourceId) },
-                                onItemClick = { onNewsItemClick(fallbackItem.url) }
+                                onItemClick = { onNewsItemClick(fallbackItem.url) },
+                                onActionsClick = { onActionsClick(fallbackItem) }
                             )
                         }
                     }
@@ -323,8 +363,8 @@ fun HomeScreenContent(
                             image = R.drawable.newsimages,
                             remoteImageUrl = article.urlToImage,
                             articleUrl = article.url,
-                            onAuthorClick = { onAuthorClick(article.sourceId) },
-                            onItemClick = { onNewsItemClick(article.url) }
+                            onItemClick = { onNewsItemClick(article.url) },
+                            onActionsClick = { onActionsClick(article) }
                         )
                     }
                 }
@@ -342,8 +382,8 @@ fun TrendingSection(
     publishedAt: String,
     articleUrl: String,
     onSeeAllClick: () -> Unit,
-    onAuthorClick: () -> Unit,
-    onItemClick: () -> Unit
+    onItemClick: () -> Unit,
+    onActionsClick: () -> Unit = {}
 ) {
     val logoDomain = remember(articleUrl) { if (!articleUrl.isNullOrBlank()) TimeUtils.getDomain(articleUrl) else null }
     val logoUrl = remember(logoDomain) { if (!logoDomain.isNullOrBlank()) "https://www.google.com/s2/favicons?sz=128&domain=$logoDomain" else "" }
@@ -353,13 +393,8 @@ fun TrendingSection(
         if (!logoDomain.isNullOrBlank()) logoDomain.replace("www.", "").split(".")[0].uppercase() else category.uppercase()
     }
 
-    Column(
-        modifier = Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = onItemClick
-        )
-    ) {
+    Column {
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -380,50 +415,94 @@ fun TrendingSection(
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
-
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(if (!imageUrl.isNullOrBlank()) imageUrl else R.drawable.newsimages)
-                .crossfade(100)
-                .placeholder(R.drawable.newsimages)
-                .error(R.drawable.newsimages)
-                .fallback(R.drawable.newsimages)
-                .memoryCacheKey(imageUrl)
-                .build(),
-            contentDescription = null,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(183.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.Crop
-        )
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onItemClick)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(if (!imageUrl.isNullOrBlank()) imageUrl else R.drawable.newsimages)
+                    .crossfade(100)
+                    .placeholder(R.drawable.newsimages)
+                    .error(R.drawable.newsimages)
+                    .fallback(R.drawable.newsimages)
+                    .memoryCacheKey(imageUrl)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(183.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = upperCategory,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+            Text(
+                text = upperCategory,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 22.sp
-            ),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 22.sp
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(4.dp))
+                ) {
+                    if (!logoUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(logoUrl)
+                                .crossfade(true)
+                                .memoryCacheKey(logoUrl)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(BluePrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = cleanedPublisher.take(1).uppercase(),
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+        }
+    }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -433,7 +512,6 @@ fun TrendingSection(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(4.dp))
-                    .clickable(onClick = onAuthorClick)
             ) {
                 if (!logoUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -498,7 +576,7 @@ fun TrendingSection(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 IconButton(
-                    onClick = { /* Menu */ },
+                    onClick = onActionsClick,
                     modifier = Modifier.size(16.dp)
                 ) {
                     Icon(
@@ -511,8 +589,6 @@ fun TrendingSection(
             }
         }
     }
-}
-
 @Composable
 fun LatestSectionHeader(onSeeAllClick: () -> Unit) {
     Row(
@@ -600,8 +676,8 @@ fun NewsItem(
     image: Int,
     remoteImageUrl: String?,
     articleUrl: String,
-    onAuthorClick: () -> Unit,
-    onItemClick: () -> Unit
+    onItemClick: () -> Unit,
+    onActionsClick: () -> Unit = {}
 ) {
     val logoDomain = remember(articleUrl) { if (!articleUrl.isNullOrBlank()) TimeUtils.getDomain(articleUrl) else null }
     val logoUrl = remember(logoDomain) { if (!logoDomain.isNullOrBlank()) "https://www.google.com/s2/favicons?sz=128&domain=$logoDomain" else "" }
@@ -636,7 +712,6 @@ fun NewsItem(
                 .clip(RoundedCornerShape(12.dp)),
             contentScale = ContentScale.Crop
         )
-
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -654,6 +729,7 @@ fun NewsItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = title,
+                    modifier = Modifier.offset(y = 5.dp),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
@@ -664,17 +740,15 @@ fun NewsItem(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().offset(y = (-5).dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(4.dp))
-                        .clickable(onClick = onAuthorClick)
                 ) {
                     if (!logoUrl.isNullOrBlank()) {
                         AsyncImage(
@@ -739,7 +813,7 @@ fun NewsItem(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     IconButton(
-                        onClick = { /* Actions */ },
+                        onClick = onActionsClick,
                         modifier = Modifier.size(16.dp)
                     ) {
                         Icon(

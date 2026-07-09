@@ -23,6 +23,7 @@ class NewsRepositoryImpl @Inject constructor(
 ) : NewsRepository {
 
     private val usersCollection = firestore.collection("users")
+    private val sourcesCollection = firestore.collection("sources")
 
     override suspend fun getTopHeadlines(category: String?): Result<List<Article>> {
         return try {
@@ -256,24 +257,54 @@ class NewsRepositoryImpl @Inject constructor(
     override suspend fun followSource(sourceId: String): Result<Unit> {
         return try {
             val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
-            usersCollection.document(uid)
-                .update("followedSources", FieldValue.arrayUnion(sourceId))
-                .await()
+            
+            // Run as a transaction to ensure both user list and source count are updated
+            firestore.runTransaction { transaction ->
+                val userRef = usersCollection.document(uid)
+                val sourceRef = sourcesCollection.document(sourceId)
+                
+                transaction.update(userRef, "followedSources", FieldValue.arrayUnion(sourceId))
+                transaction.update(sourceRef, "followerCount", FieldValue.increment(1))
+            }.await()
+            
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            // Fallback: If source document doesn't exist, just update user (optional: create source doc)
+            try {
+                val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+                usersCollection.document(uid)
+                    .update("followedSources", FieldValue.arrayUnion(sourceId))
+                    .await()
+                Result.success(Unit)
+            } catch (inner: Exception) {
+                Result.failure(inner)
+            }
         }
     }
 
     override suspend fun unfollowSource(sourceId: String): Result<Unit> {
         return try {
             val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
-            usersCollection.document(uid)
-                .update("followedSources", FieldValue.arrayRemove(sourceId))
-                .await()
+            
+            firestore.runTransaction { transaction ->
+                val userRef = usersCollection.document(uid)
+                val sourceRef = sourcesCollection.document(sourceId)
+                
+                transaction.update(userRef, "followedSources", FieldValue.arrayRemove(sourceId))
+                transaction.update(sourceRef, "followerCount", FieldValue.increment(-1))
+            }.await()
+            
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            try {
+                val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+                usersCollection.document(uid)
+                    .update("followedSources", FieldValue.arrayRemove(sourceId))
+                    .await()
+                Result.success(Unit)
+            } catch (inner: Exception) {
+                Result.failure(inner)
+            }
         }
     }
 
@@ -282,6 +313,114 @@ class NewsRepositoryImpl @Inject constructor(
         return usersCollection.document(uid).snapshots().map { snapshot ->
             @Suppress("UNCHECKED_CAST")
             (snapshot.get("followedSources") as? List<String>) ?: emptyList()
+        }
+    }
+
+    override suspend fun bookmarkArticle(article: Article): Result<Unit> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+            usersCollection.document(uid)
+                .collection("bookmarks")
+                .document(android.util.Base64.encodeToString(article.url.toByteArray(), android.util.Base64.NO_WRAP))
+                .set(article)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun removeBookmark(articleUrl: String): Result<Unit> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+            usersCollection.document(uid)
+                .collection("bookmarks")
+                .document(android.util.Base64.encodeToString(articleUrl.toByteArray(), android.util.Base64.NO_WRAP))
+                .delete()
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getBookmarkedArticles(): Flow<List<Article>> {
+        val uid = auth.currentUser?.uid ?: return emptyFlow()
+        return usersCollection.document(uid)
+            .collection("bookmarks")
+            .snapshots()
+            .map { snapshot ->
+                snapshot.toObjects(Article::class.java)
+            }
+    }
+
+    override suspend fun isArticleBookmarked(articleUrl: String): Boolean {
+        return try {
+            val uid = auth.currentUser?.uid ?: return false
+            val doc = usersCollection.document(uid)
+                .collection("bookmarks")
+                .document(android.util.Base64.encodeToString(articleUrl.toByteArray(), android.util.Base64.NO_WRAP))
+                .get()
+                .await()
+            doc.exists()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun hideArticle(articleUrl: String): Result<Unit> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+            usersCollection.document(uid)
+                .update("hiddenArticles", FieldValue.arrayUnion(articleUrl))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun blockSource(sourceId: String): Result<Unit> {
+        return try {
+            val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
+            usersCollection.document(uid)
+                .update("blockedSources", FieldValue.arrayUnion(sourceId))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun reportArticle(articleUrl: String, reason: String): Result<Unit> {
+        return try {
+            firestore.collection("reports").add(
+                mapOf(
+                    "articleUrl" to articleUrl,
+                    "reason" to reason,
+                    "reportedBy" to (auth.currentUser?.uid ?: "anonymous"),
+                    "timestamp" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getHiddenArticles(): Flow<List<String>> {
+        val uid = auth.currentUser?.uid ?: return emptyFlow()
+        return usersCollection.document(uid).snapshots().map { snapshot ->
+            @Suppress("UNCHECKED_CAST")
+            (snapshot.get("hiddenArticles") as? List<String>) ?: emptyList()
+        }
+    }
+
+    override fun getBlockedSources(): Flow<List<String>> {
+        val uid = auth.currentUser?.uid ?: return emptyFlow()
+        return usersCollection.document(uid).snapshots().map { snapshot ->
+            @Suppress("UNCHECKED_CAST")
+            (snapshot.get("blockedSources") as? List<String>) ?: emptyList()
         }
     }
 }

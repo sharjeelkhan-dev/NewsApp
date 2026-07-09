@@ -37,4 +37,30 @@ class LatestNewsViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+
+    fun bookmarkArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.bookmarkArticle(article)
+        }
+    }
+
+    fun hideArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.hideArticle(article.url)
+            _latestNews.value = _latestNews.value.filter { it.url != article.url }
+        }
+    }
+
+    fun blockSource(sourceId: String) {
+        viewModelScope.launch {
+            newsRepository.blockSource(sourceId)
+            _latestNews.value = _latestNews.value.filter { it.sourceId != sourceId }
+        }
+    }
+
+    fun reportArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.reportArticle(article.url, "Reported from Latest News")
+        }
+    }
 }

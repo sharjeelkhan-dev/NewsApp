@@ -36,4 +36,10 @@ class TrendingViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+
+    fun bookmarkArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.bookmarkArticle(article)
+        }
+    }
 }

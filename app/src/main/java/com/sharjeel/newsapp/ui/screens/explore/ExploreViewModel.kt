@@ -81,6 +81,12 @@ class ExploreViewModel @Inject constructor(
         }
     }
 
+    fun bookmarkArticle(article: Article) {
+        viewModelScope.launch {
+            newsRepository.bookmarkArticle(article)
+        }
+    }
+
     private fun updateSourcesWithFollowStatus() {
         _sources.value = _sources.value.map { source ->
             source.copy(isFollowed = followedSourceIds.contains(source.id))

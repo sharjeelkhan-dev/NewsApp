@@ -359,9 +359,6 @@ fun NavGraph(
                 onSearchClick = {
                     navController.navigate(Screen.Search.route)
                 },
-                onAuthorClick = { sourceId: String ->
-                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
-                },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -393,9 +390,6 @@ fun NavGraph(
                 onSearchClick = {
                     navController.navigate(Screen.Search.route)
                 },
-                onAuthorClick = { sourceId: String ->
-                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
-                },
                 onNewsItemClick = { url: String ->
                     val foundArticle = exploreViewModel.popularNews.value.find { it.url == url }
                     if (foundArticle != null) {
@@ -415,6 +409,9 @@ fun NavGraph(
                 },
                 onCommentClick = {
                     navController.navigate(Screen.Comments.route)
+                },
+                onAuthorClick = { sourceId ->
+                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
                 }
             )
         }
@@ -471,9 +468,6 @@ fun NavGraph(
                 onBackClick = {
                     navController.popBackStack()
                 },
-                onAuthorClick = { sourceId: String ->
-                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
-                },
                 onNewsItemClick = { url: String ->
                     val foundArticle = latestNewsViewModel.latestNews.value.find { it.url == url }
                     if (foundArticle != null) {
@@ -487,9 +481,6 @@ fun NavGraph(
         composable(Screen.Search.route) {
             val searchViewModel: com.sharjeel.newsapp.ui.screens.search.SearchViewModel = hiltViewModel()
             SearchScreen(
-                onAuthorClick = { sourceId: String ->
-                    navController.navigate(Screen.AuthorProfile.createRoute(sourceId))
-                },
                 onBackClick = {
                     navController.popBackStack()
                 },

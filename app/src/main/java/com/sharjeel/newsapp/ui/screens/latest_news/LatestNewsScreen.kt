@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.R
 import com.sharjeel.newsapp.ui.components.AppScaffold
+import com.sharjeel.newsapp.ui.components.NewsActionsBottomSheet
 import com.sharjeel.newsapp.ui.screens.home.CategoryTabs
 import com.sharjeel.newsapp.ui.screens.home.NewsItem
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
@@ -44,7 +45,6 @@ import com.sharjeel.newsapp.util.TimeUtils
 @Composable
 fun LatestNewsScreen(
     onBackClick: () -> Unit,
-    onAuthorClick: (String) -> Unit,
     onNewsItemClick: (String) -> Unit = { _ -> },
     viewModel: LatestNewsViewModel = hiltViewModel()
 ) {
@@ -52,6 +52,7 @@ fun LatestNewsScreen(
     val isLoading by viewModel.isLoading
     val categories = listOf("All", "Sports", "Politics", "Business", "Health", "Travel", "Science")
     var selectedCategory by remember { mutableStateOf("All") }
+    var selectedArticleForActions by remember { mutableStateOf<com.sharjeel.newsapp.domain.model.Article?>(null) }
 
     AppScaffold(
         topBar = {
@@ -127,13 +128,34 @@ fun LatestNewsScreen(
                             image = R.drawable.newsimages,
                             remoteImageUrl = article.urlToImage,
                             articleUrl = article.url,
-                            onAuthorClick = { onAuthorClick(article.sourceId) },
-                            onItemClick = { onNewsItemClick(article.url) }
+                            onItemClick = { onNewsItemClick(article.url) },
+                            onActionsClick = { selectedArticleForActions = article }
                         )
                     }
                 }
             }
         }
+    }
+
+    selectedArticleForActions?.let { article ->
+        NewsActionsBottomSheet(
+            onDismissRequest = { selectedArticleForActions = null },
+            articleTitle = article.title,
+            articleUrl = article.url,
+            sourceName = article.sourceName,
+            onBookmarkClick = {
+                viewModel.bookmarkArticle(article)
+            },
+            onHideClick = {
+                viewModel.hideArticle(article)
+            },
+            onBlockSourceClick = {
+                viewModel.blockSource(article.sourceId)
+            },
+            onReportClick = {
+                viewModel.reportArticle(article)
+            }
+        )
     }
 }
 
@@ -141,7 +163,7 @@ fun LatestNewsScreen(
 @Composable
 fun LatestNewsScreenPreview() {
     NewsAppTheme {
-        LatestNewsScreen(onBackClick = {}, onAuthorClick = { _ -> })
+        LatestNewsScreen(onBackClick = {})
     }
 }
 
@@ -149,6 +171,6 @@ fun LatestNewsScreenPreview() {
 @Composable
 fun LatestNewsScreenDarkPreview() {
     NewsAppTheme {
-        LatestNewsScreen(onBackClick = {}, onAuthorClick = { _ -> })
+        LatestNewsScreen(onBackClick = {})
     }
 }
