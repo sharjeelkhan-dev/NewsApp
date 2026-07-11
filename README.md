@@ -1,7 +1,7 @@
 <hr/>
 
 ### 📰 Akhbar News – Personalized News Aggregator
-![Status](https://img.shields.io/badge/Private_Code-181717?style=for-the-badge&logo=github&logoColor=white) ![UI](https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white) ![DI](https://img.shields.io/badge/Dagger_Hilt-2C3E50?style=for-the-badge&logo=android&logoColor=white) ![Cloud](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Status](https://img.shields.io/badge/Code-181717?style=for-the-badge&logo=github&logoColor=white) ![UI](https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white) ![DI](https://img.shields.io/badge/Dagger_Hilt-2C3E50?style=for-the-badge&logo=android&logoColor=white) ![Cloud](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 
 > High-performance news aggregator engineered with modern clean architecture boundaries and custom web-scraping content extraction engines.
 
