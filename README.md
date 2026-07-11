@@ -25,3 +25,10 @@
  </tr>
 </table>
 </details>
+
+## 🛠 Setup & Installation
+
+### 📋 Prerequisites
+* Android Studio Ladybug (or newer)
+* JDK 17+
+* Android SDK 28 (Android 9.0) or higher
