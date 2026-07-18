@@ -17,10 +17,17 @@
 <br/>
 <table width="100%">
  <tr>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/74f224a3-a489-448d-b09e-4b81dfd7165d" width="100%" alt="Screen 1 - News Feed" /></td>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/594c09e5-85da-4be7-9123-f6752a248956" width="100%" alt="Screen 2 - Reader Mode" /></td>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/2a776ad4-8b02-456d-b835-eeb711e7e214" width="100%" alt="Screen 3 - Configuration & Filters" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/5fb51226-e3f4-40f6-a439-cfda28ebe413" width="100%" alt="Screen 1 - Splash Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/7a7a849f-7f22-4594-b880-3e3b854bdded" width="100%" alt="Screen 2 - Home Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/0a67180f-8f7f-4a0e-9cb4-b2a8f1c4b3b9" width="100%" alt="Screen 3 - News Detail Screen" /></td>
  </tr>
+ 
+  <tr>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/bbdc7562-839c-497e-be87-a5309c330666" width="100%" alt="Screen 4 - Explore Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/5ea362db-0ee9-4026-b83d-38c6671723b9" width="100%" alt="Screen 5 - Bookmark Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/3fd18e3a-c222-4901-8f75-c0d4cfc2acc1" width="100%" alt="Screen 3 - Profile Screen" /></td>
+ </tr>
+ 
 </table>
 </details>
 
