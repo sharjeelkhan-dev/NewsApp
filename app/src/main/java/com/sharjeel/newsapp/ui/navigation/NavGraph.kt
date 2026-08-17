@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sharjeel.newsapp.ui.screens.MainScreen
+import com.sharjeel.newsapp.ui.screens.ai.AiAssistantScreen
 import com.sharjeel.newsapp.ui.screens.auth.AuthViewModel
 import com.sharjeel.newsapp.ui.screens.auth.ForgotPasswordNavigation
 import com.sharjeel.newsapp.ui.screens.auth.LoginScreen
@@ -72,6 +73,7 @@ sealed class Screen(val route: String) {
     data object Comments : Screen("comments")
     data object CreateNews : Screen("create_news")
     data object PublishedNewsDetail : Screen("published_news_detail")
+    data object AiAssistant : Screen("ai_assistant")
 }
 
 @Composable
@@ -377,6 +379,9 @@ fun NavGraph(
                 onCreateNewsClick = {
                     navController.navigate(Screen.CreateNews.route)
                 },
+                onAiAssistantClick = {
+                    navController.navigate(Screen.AiAssistant.route)
+                },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Main.route) { inclusive = true }
@@ -434,6 +439,13 @@ fun NavGraph(
         }
         composable(Screen.PublishedNewsDetail.route) {
             PublishedNewsDetailScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.AiAssistant.route) {
+            AiAssistantScreen(
                 onBackClick = {
                     navController.popBackStack()
                 }

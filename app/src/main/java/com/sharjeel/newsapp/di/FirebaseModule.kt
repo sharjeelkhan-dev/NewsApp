@@ -1,5 +1,11 @@
 package com.sharjeel.newsapp.di
 
+import com.google.firebase.Firebase
+import com.google.firebase.ai.GenerativeModel
+import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
@@ -19,4 +25,15 @@ object FirebaseModule {
     @Provides
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAnalytics(): FirebaseAnalytics = Firebase.analytics
+
+    @Provides
+    @Singleton
+    fun provideGenerativeModel(): GenerativeModel {
+        return Firebase.ai(backend = GenerativeBackend.googleAI())
+            .generativeModel("gemini-3.5-flash")
+    }
 }

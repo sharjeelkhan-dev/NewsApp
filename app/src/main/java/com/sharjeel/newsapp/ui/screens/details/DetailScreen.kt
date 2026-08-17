@@ -2,6 +2,7 @@ package com.sharjeel.newsapp.ui.screens.details
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,19 +22,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sharjeel.newsapp.R
@@ -71,8 +80,19 @@ fun DetailScreen(
     article: com.sharjeel.newsapp.domain.model.Article? = null,
     onBackClick: () -> Unit,
     onCommentClick: () -> Unit,
-    onAuthorClick: (String) -> Unit = {}
+    onAuthorClick: (String) -> Unit = {},
+    viewModel: DetailViewModel = hiltViewModel()
 ) {
+    val aiSummary by viewModel.aiSummary
+    val aiTranslation by viewModel.aiTranslation
+    val aiSentiment by viewModel.aiSentiment
+    val aiEnhancedHeadline by viewModel.aiEnhancedHeadline
+    
+    val isSummarizing by viewModel.isSummarizing
+    val isTranslating by viewModel.isTranslating
+    val isAnalyzingSentiment by viewModel.isAnalyzingSentiment
+    val isEnhancingHeadline by viewModel.isEnhancingHeadline
+
     var isFollowing by remember { mutableStateOf(true) }
     var isLiked by remember { mutableStateOf(false) }
     var isBookmarked by remember { mutableStateOf(true) }
@@ -82,6 +102,10 @@ fun DetailScreen(
 
     val logoDomain = remember(article?.url) { article?.url?.let { TimeUtils.getDomain(it) } }
     val logoUrl = if (!logoDomain.isNullOrBlank()) "https://www.google.com/s2/favicons?sz=128&domain=$logoDomain" else ""
+
+    LaunchedEffect(article) {
+        article?.let { viewModel.setArticle(it) }
+    }
 
     LaunchedEffect(article?.url) {
         if (!article?.url.isNullOrBlank()) {
@@ -94,13 +118,10 @@ fun DetailScreen(
                         .followRedirects(true)
                         .get()
 
-                    // Bekar content (Ads, Scripts, Footers, Navbars) ko pehle saaf karna taake real text bache
                     doc.select("script, style, header, footer, nav, iframe, noscript, .ads, .advertisement, .comments, #comments").remove()
 
-                    // Strategy 1: Standard Article selectors check karna
                     var extractedText = extractTextFromSelectors(doc, "article, [itemprop=articleBody], .article-body, .story-content, .entry-content, .post-content")
 
-                    // Strategy 2: Agar specialized selector na mile to direct clean paragraphs se join karna
                     if (extractedText.isBlank() || extractedText.length < 300) {
                         val paragraphs = doc.select("p")
                         extractedText = paragraphs.map { it.text().trim() }
@@ -108,16 +129,16 @@ fun DetailScreen(
                             .joinToString(separator = "\n\n")
                     }
 
-                    val finalCleanText = extractedText.replace(Regex("\\[\\+\\d+\\s+chars\\]"), "").trim()
+                    val finalCleanText = extractedText.replace(Regex("\\[\\+\\d+\\s+chars]"), "").trim()
 
                     if (finalCleanText.length > 150) {
                         finalCleanText
                     } else {
-                        cleanFallbackText(article.content ?: article.description ?: "")
+                        cleanFallbackText(article.content)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    cleanFallbackText(article.content ?: article.description ?: "")
+                    cleanFallbackText(article.content)
                 }
             }
             isContentLoading = false
@@ -133,7 +154,7 @@ fun DetailScreen(
                 .padding(padding)
                 .statusBarsPadding()
         ) {
-            // Top Row Setup
+            // Top Row Setup (Original)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,7 +183,7 @@ fun DetailScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp)
             ) {
-                // Identity Header Section
+                // Identity Header Section (Original)
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -215,7 +236,7 @@ fun DetailScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Feature Media Box
+                // Feature Media Box (Original)
                 Card(modifier = Modifier.fillMaxWidth().height(220.dp), shape = RoundedCornerShape(8.dp), elevation = CardDefaults.cardElevation(0.dp)) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
@@ -229,7 +250,71 @@ fun DetailScreen(
 
                 Text(text = article?.author?.ifBlank { "News" } ?: "News", style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(text = article?.title ?: "No Title Available", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, lineHeight = 30.sp))
+                
+                // Title with AI Enhancement
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = aiEnhancedHeadline ?: article?.title ?: "No Title Available",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 22.sp,
+                            lineHeight = 30.sp
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (aiEnhancedHeadline == null) {
+                        IconButton(onClick = { article?.title?.let { viewModel.enhanceHeadline(it) } }) {
+                            if (isEnhancingHeadline) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = BluePrimary)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Enhance Title",
+                                    tint = BluePrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Smart AI Chips Row
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AIChip(
+                        label = "Summarize",
+                        icon = Icons.Default.Bolt,
+                        isLoading = isSummarizing,
+                        onClick = { viewModel.summarizeArticle(fullArticleText) }
+                    )
+                    AIChip(
+                        label = "Translate",
+                        icon = Icons.Default.Translate,
+                        isLoading = isTranslating,
+                        onClick = { viewModel.translateArticle(fullArticleText, "Urdu") }
+                    )
+                    AIChip(
+                        label = "Analysis",
+                        icon = Icons.Default.Analytics,
+                        isLoading = isAnalyzingSentiment,
+                        onClick = { viewModel.analyzeSentiment(fullArticleText) }
+                    )
+                }
+
+                // AI Insights Card
+                if (aiSummary != null || aiTranslation != null || aiSentiment != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    AIResultCard(
+                        summary = aiSummary,
+                        translation = aiTranslation,
+                        sentiment = aiSentiment
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Complete Dynamic UI News Stream
@@ -251,7 +336,7 @@ fun DetailScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
 
-            // Bottom Actions Footer Fixed Block
+            // Bottom Actions Footer Fixed Block (Original)
             Row(
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -276,7 +361,76 @@ fun DetailScreen(
     }
 }
 
-// Helpers for multi-layered HTML container parsing
+@Composable
+fun AIChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isLoading: Boolean,
+    onClick: () -> Unit
+) {
+    ElevatedAssistChip(
+        onClick = onClick,
+        label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+        leadingIcon = {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = BluePrimary)
+            } else {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = BluePrimary)
+            }
+        },
+        shape = RoundedCornerShape(12.dp),
+        colors = AssistChipDefaults.elevatedAssistChipColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            labelColor = MaterialTheme.colorScheme.onSurface
+        ),
+        enabled = !isLoading
+    )
+}
+
+@Composable
+fun AIResultCard(
+    summary: String?,
+    translation: String?,
+    sentiment: String?
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("AI INSIGHTS", style = MaterialTheme.typography.labelSmall.copy(color = BluePrimary, fontWeight = FontWeight.Bold, letterSpacing = 1.sp))
+            }
+            
+            if (sentiment != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Sentiment: $sentiment",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        color = if (sentiment.contains("Positive", true)) Color(0xFF4CAF50) else if (sentiment.contains("Negative", true)) Color(0xFFF44336) else MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+
+            if (summary != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("AI Summary", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                Text(summary, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            if (translation != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Urdu Translation", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                Text(translation, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
 private fun extractTextFromSelectors(doc: Document, selectors: String): String {
     val elements = doc.select(selectors)
     for (element in elements) {
@@ -290,7 +444,7 @@ private fun extractTextFromSelectors(doc: Document, selectors: String): String {
 }
 
 private fun cleanFallbackText(text: String): String {
-    return text.replace(Regex("\\[\\+\\d+\\s+chars\\]"), "").replace("...", "").trim()
+    return text.replace(Regex("\\[\\+\\d+\\s+chars]"), "").replace("...", "").trim()
 }
 
 @Preview(showBackground = true)

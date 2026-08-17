@@ -4,6 +4,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.snapshots
+import com.google.firebase.ai.GenerativeModel
+import com.google.firebase.ai.type.content
 import com.sharjeel.newsapp.data.remote.CurrentsApi
 import com.sharjeel.newsapp.domain.model.Article
 import com.sharjeel.newsapp.domain.model.NewsSource
@@ -19,7 +21,8 @@ import javax.inject.Singleton
 class NewsRepositoryImpl @Inject constructor(
     private val currentsApi: CurrentsApi,
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val generativeModel: GenerativeModel
 ) : NewsRepository {
 
     private val usersCollection = firestore.collection("users")
@@ -421,6 +424,62 @@ class NewsRepositoryImpl @Inject constructor(
         return usersCollection.document(uid).snapshots().map { snapshot ->
             @Suppress("UNCHECKED_CAST")
             (snapshot.get("blockedSources") as? List<String>) ?: emptyList()
+        }
+    }
+
+    // AI Implementations
+    override suspend fun summarizeArticle(content: String): Result<String> {
+        return try {
+            val prompt = "Summarize the following news article in exactly 3 concise bullet points:\n\n$content"
+            val response = generativeModel.generateContent(prompt)
+            Result.success(response.text ?: "No summary generated.")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun translateArticle(content: String, targetLanguage: String): Result<String> {
+        return try {
+            val prompt = "Translate the following news article into $targetLanguage. Keep the tone professional:\n\n$content"
+            val response = generativeModel.generateContent(prompt)
+            Result.success(response.text ?: "Translation failed.")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun analyzeSentiment(content: String): Result<String> {
+        return try {
+            val prompt = "Analyze the sentiment of this news article. Respond with only one word: Positive, Negative, or Neutral.\n\n$content"
+            val response = generativeModel.generateContent(prompt)
+            Result.success(response.text ?: "Neutral")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun askAiAssistant(query: String, context: String?): Result<String> {
+        return try {
+            val systemPrompt = "You are a smart News Assistant for the 'Akhbar' app. Help the user with their news-related questions."
+            val fullPrompt = if (context != null) {
+                "$systemPrompt\n\nContext about the current article:\n$context\n\nUser Question: $query"
+            } else {
+                "$systemPrompt\n\nUser Question: $query"
+            }
+            val response = generativeModel.generateContent(fullPrompt)
+            Result.success(response.text ?: "I'm sorry, I couldn't process that request.")
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun enhanceHeadline(title: String): Result<String> {
+        return try {
+            val prompt = "Rewrite this news headline to be more engaging and catchy, but keep it factual. Respond with ONLY the new headline:\n\n$title"
+            val response = generativeModel.generateContent(prompt)
+            Result.success(response.text ?: title)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

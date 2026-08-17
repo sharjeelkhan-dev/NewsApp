@@ -25,4 +25,11 @@ interface NewsRepository {
     suspend fun reportArticle(articleUrl: String, reason: String): Result<Unit>
     fun getHiddenArticles(): Flow<List<String>>
     fun getBlockedSources(): Flow<List<String>>
+
+    // AI Features
+    suspend fun summarizeArticle(content: String): Result<String>
+    suspend fun translateArticle(content: String, targetLanguage: String): Result<String>
+    suspend fun analyzeSentiment(content: String): Result<String>
+    suspend fun askAiAssistant(query: String, context: String? = null): Result<String>
+    suspend fun enhanceHeadline(title: String): Result<String>
 }

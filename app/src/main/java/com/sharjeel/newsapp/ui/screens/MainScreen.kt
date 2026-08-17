@@ -4,6 +4,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -74,6 +77,7 @@ fun MainScreen(
     onEditProfileClick: () -> Unit,
     onNewsItemClick: (String) -> Unit,
     onCreateNewsClick: () -> Unit,
+    onAiAssistantClick: () -> Unit,
     onLogout: () -> Unit,
     viewModel: MainViewModel = hiltViewModel()
 ) {
@@ -95,6 +99,7 @@ fun MainScreen(
                 HomeScreen(
                     onSeeAllTrendingClick = onSeeAllTrendingClick,
                     onNotificationClick = onNotificationClick,
+                    onAiAssistantClick = onAiAssistantClick,
                     onSeeAllLatestClick = onSeeAllLatestClick,
                     onSearchClick = onSearchClick,
                     onFilterClick = { /* TODO: Implement filter */ },

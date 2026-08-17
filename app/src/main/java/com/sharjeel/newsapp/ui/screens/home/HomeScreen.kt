@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -67,59 +68,11 @@ import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 import com.sharjeel.newsapp.util.SmoothScrollConfig
 import com.sharjeel.newsapp.util.TimeUtils
 
-// ================= PREVIEW =================
-@Preview(showBackground = true, widthDp = 360, heightDp = 760)
-@Composable
-fun HomeScreenPreview() {
-    NewsAppTheme {
-        val mockTrendingList = listOf(
-            com.sharjeel.newsapp.domain.model.Article(
-                title = "Russian warship fires warning shots on cargo ship in Black Sea",
-                sourceName = "BBC News",
-                sourceId = "bbc-news",
-                url = "https://www.bbc.com/news/world-europe",
-                urlToImage = "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=500&auto=format&fit=crop&q=60",
-                publishedAt = "2026-07-08T12:00:00Z",
-                author = "BBC Reporter",
-                description = "A Russian warship has fired warning shots on a cargo ship moving towards Ukraine.",
-                content = "Full content body of the news goes here for mock validation purposes."
-            )
-        )
-        val mockLatestList = listOf(
-            com.sharjeel.newsapp.domain.model.Article(
-                title = "Ukraine updates: Kyiv says grain facilities hit again in Odesa",
-                sourceName = "CNN",
-                sourceId = "cnn",
-                url = "https://www.cnn.com",
-                urlToImage = "https://images.unsplash.com/photo-1495020689067-958852a6565d?w=500&auto=format&fit=crop&q=60",
-                publishedAt = "2026-07-08T11:30:00Z",
-                author = "CNN Staff",
-                description = "Kyiv reports continuous infrastructure damage across vital deep-sea ports.",
-                content = "Full detailed analytics response content body from regional correspondents."
-            )
-        )
-
-        HomeScreenContent(
-            trendingNews = mockTrendingList,
-            latestNews = mockLatestList,
-            isLoading = false,
-            selectedCategory = "All",
-            onCategorySelected = {},
-            onSeeAllTrendingClick = {},
-            onNotificationClick = {},
-            onSeeAllLatestClick = {},
-            onSearchClick = {},
-            onFilterClick = {},
-            onNewsItemClick = {},
-            onActionsClick = {}
-        )
-    }
-}
-
 @Composable
 fun HomeScreen(
     onSeeAllTrendingClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onAiAssistantClick: () -> Unit = {},
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit = {},
@@ -144,6 +97,7 @@ fun HomeScreen(
         },
         onSeeAllTrendingClick = onSeeAllTrendingClick,
         onNotificationClick = onNotificationClick,
+        onAiAssistantClick = onAiAssistantClick,
         onSeeAllLatestClick = onSeeAllLatestClick,
         onSearchClick = onSearchClick,
         onFilterClick = { showFilterSheet = true },
@@ -158,7 +112,6 @@ fun HomeScreen(
             onDismissRequest = { showFilterSheet = false },
             onApplyFilters = { filter ->
                 showFilterSheet = false
-                // Handle filter (e.g. viewModel.applyFilter(filter))
             },
             onResetFilters = {
                 showFilterSheet = false
@@ -197,6 +150,7 @@ fun HomeScreenContent(
     onCategorySelected: (String) -> Unit,
     onSeeAllTrendingClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onAiAssistantClick: () -> Unit,
     onSeeAllLatestClick: () -> Unit,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
@@ -216,14 +170,11 @@ fun HomeScreenContent(
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        // Main structural wrapper
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-
-            // ================= FIXED / STICKY TOP HEADER & SEARCH =================
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -236,13 +187,23 @@ fun HomeScreenContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AkhbarLogo(iconSize = 30.dp, fontSize = 24.sp)
-                    IconButton(onClick = onNotificationClick) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.bell_line_icon),
-                            contentDescription = "Notifications",
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onAiAssistantClick) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "AI Assistant",
+                                modifier = Modifier.size(24.dp),
+                                tint = BluePrimary
+                            )
+                        }
+                        IconButton(onClick = onNotificationClick) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.bell_line_icon),
+                                contentDescription = "Notifications",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -254,7 +215,7 @@ fun HomeScreenContent(
                         .fillMaxWidth()
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = androidx.compose.material3.ripple(),
+                            indication = ripple(),
                             onClick = onSearchClick
                         ),
                     placeholder = {
@@ -294,7 +255,6 @@ fun HomeScreenContent(
                 )
             }
 
-            // ================= SCROLLABLE CONTENT SECTION =================
             if (isLoading && trendingNews.isEmpty() && latestNews.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = BluePrimary)
@@ -320,21 +280,6 @@ fun HomeScreenContent(
                                 onSeeAllClick = onSeeAllTrendingClick,
                                 onItemClick = { onNewsItemClick(trendingItem.url) },
                                 onActionsClick = { onActionsClick(trendingItem) }
-                            )
-                        }
-                    } else if (latestNews.isNotEmpty()) {
-                        item(key = "trending_fallback") {
-                            val fallbackItem = latestNews.first()
-                            TrendingSection(
-                                title = fallbackItem.title,
-                                category = fallbackItem.sourceName,
-                                imageUrl = fallbackItem.urlToImage,
-                                publisher = fallbackItem.sourceName,
-                                publishedAt = fallbackItem.publishedAt,
-                                articleUrl = fallbackItem.url,
-                                onSeeAllClick = onSeeAllTrendingClick,
-                                onItemClick = { onNewsItemClick(fallbackItem.url) },
-                                onActionsClick = { onActionsClick(fallbackItem) }
                             )
                         }
                     }
@@ -385,7 +330,7 @@ fun TrendingSection(
     onItemClick: () -> Unit,
     onActionsClick: () -> Unit = {}
 ) {
-    val logoDomain = remember(articleUrl) { if (!articleUrl.isNullOrBlank()) TimeUtils.getDomain(articleUrl) else null }
+    val logoDomain = remember(articleUrl) { if (articleUrl.isNotBlank()) TimeUtils.getDomain(articleUrl) else null }
     val logoUrl = remember(logoDomain) { if (!logoDomain.isNullOrBlank()) "https://www.google.com/s2/favicons?sz=128&domain=$logoDomain" else "" }
     val cleanedPublisher = remember(publisher) { sanitizeChannelName(publisher) }
     val time = remember(publishedAt) { TimeUtils.formatRelativeTime(publishedAt) }
@@ -394,7 +339,6 @@ fun TrendingSection(
     }
 
     Column {
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -428,7 +372,6 @@ fun TrendingSection(
                     .placeholder(R.drawable.newsimages)
                     .error(R.drawable.newsimages)
                     .fallback(R.drawable.newsimages)
-                    .memoryCacheKey(imageUrl)
                     .build(),
                 contentDescription = null,
                 modifier = Modifier
@@ -464,19 +407,17 @@ fun TrendingSection(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(4.dp))
+                    modifier = Modifier.weight(1f)
                 ) {
-                    if (!logoUrl.isNullOrBlank()) {
+                    if (logoUrl.isNotBlank()) {
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(logoUrl)
-                                .crossfade(true)
-                                .memoryCacheKey(logoUrl)
-                                .build(),
+                            model = logoUrl,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(16.dp)
@@ -500,95 +441,54 @@ fun TrendingSection(
                             )
                         }
                     }
-                }
-        }
-    }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                if (!logoUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(logoUrl)
-                            .crossfade(true)
-                            .memoryCacheKey(logoUrl)
-                            .build(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentScale = ContentScale.Fit
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = cleanedPublisher,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(BluePrimary),
-                        contentAlignment = Alignment.Center
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.clock_line_icon),
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = time,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    IconButton(
+                        onClick = onActionsClick,
+                        modifier = Modifier.size(16.dp)
                     ) {
-                        Text(
-                            text = cleanedPublisher.take(1).uppercase(),
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            imageVector = Icons.Default.MoreHoriz,
+                            contentDescription = "More",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = cleanedPublisher,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.clock_line_icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = time,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                IconButton(
-                    onClick = onActionsClick,
-                    modifier = Modifier.size(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreHoriz,
-                        contentDescription = "More",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }
+}
+
 @Composable
 fun LatestSectionHeader(onSeeAllClick: () -> Unit) {
     Row(
@@ -620,10 +520,9 @@ fun CategoryTabs(
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(end = 24.dp),
-        flingBehavior = SmoothScrollConfig.rememberSmoothFlingBehavior()
+        contentPadding = PaddingValues(end = 24.dp)
     ) {
-        items(items = categories, key = { it }) { category ->
+        items(items = categories) { category ->
             val isSelected = category == selectedCategory
             val animationProgress by animateFloatAsState(
                 targetValue = if (isSelected) 1f else 0f,
@@ -679,7 +578,7 @@ fun NewsItem(
     onItemClick: () -> Unit,
     onActionsClick: () -> Unit = {}
 ) {
-    val logoDomain = remember(articleUrl) { if (!articleUrl.isNullOrBlank()) TimeUtils.getDomain(articleUrl) else null }
+    val logoDomain = remember(articleUrl) { if (articleUrl.isNotBlank()) TimeUtils.getDomain(articleUrl) else null }
     val logoUrl = remember(logoDomain) { if (!logoDomain.isNullOrBlank()) "https://www.google.com/s2/favicons?sz=128&domain=$logoDomain" else "" }
     val cleanedPublisher = remember(publisher) { sanitizeChannelName(publisher) }
     val time = remember(publishedAt) { TimeUtils.formatRelativeTime(publishedAt) }
@@ -690,11 +589,7 @@ fun NewsItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = androidx.compose.material3.ripple(),
-                onClick = onItemClick
-            ),
+            .clickable(onClick = onItemClick),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AsyncImage(
@@ -704,7 +599,6 @@ fun NewsItem(
                 .placeholder(R.drawable.newsimages)
                 .error(R.drawable.newsimages)
                 .fallback(R.drawable.newsimages)
-                .memoryCacheKey(remoteImageUrl)
                 .build(),
             contentDescription = null,
             modifier = Modifier
@@ -729,7 +623,6 @@ fun NewsItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = title,
-                    modifier = Modifier.offset(y = 5.dp),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
@@ -742,21 +635,15 @@ fun NewsItem(
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().offset(y = (-5).dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(4.dp))
+                    modifier = Modifier.weight(1f)
                 ) {
-                    if (!logoUrl.isNullOrBlank()) {
+                    if (logoUrl.isNotBlank()) {
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(logoUrl)
-                                .crossfade(true)
-                                .memoryCacheKey(logoUrl)
-                                .build(),
+                            model = logoUrl,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(16.dp)
@@ -795,8 +682,7 @@ fun NewsItem(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.clock_line_icon),
@@ -835,4 +721,26 @@ private fun sanitizeChannelName(name: String): String {
         .replace(Regex("(?i)https?://(www\\.)?"), "")
         .split(".")[0]
         .trim()
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 760)
+@Composable
+fun HomeScreenPreview() {
+    NewsAppTheme {
+        HomeScreenContent(
+            trendingNews = emptyList(),
+            latestNews = emptyList(),
+            isLoading = false,
+            selectedCategory = "All",
+            onCategorySelected = {},
+            onSeeAllTrendingClick = {},
+            onNotificationClick = {},
+            onAiAssistantClick = {},
+            onSeeAllLatestClick = {},
+            onSearchClick = {},
+            onFilterClick = {},
+            onNewsItemClick = {},
+            onActionsClick = {}
+        )
+    }
 }
