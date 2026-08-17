@@ -5,7 +5,7 @@
 
 | Subsystem | Technical Execution Architecture |
 | :--- | :--- |
-| 🤖 **AI-Powered Commands** | Developed a modern news application using Kotlin and Jetpack Compose, integrating Firebase AI Logic with Gemini 1.5 Flash for advanced content processing. |
+| 🤖 **AI-Powered Commands** | Developed a modern news application using Kotlin and Jetpack Compose, integrating Firebase AI Logic with Gemini for advanced content processing. |
 | 🏗️ **Clean Architecture** | Multi-layered decoupled system designed over MVVM, Dagger-Hilt dependency injection, and scalable repository patterns. |
 | 👓 **Dynamic Reader Mode** | Advanced web-scraping logic using "Jsoup Parsing Engines" to strip cluttered web layouts into distraction-free reading canvases. |
 | ☁️ **Cloud Synchronization** | Atomic data pipelines utilizing Firebase Firestore Transactions to manage user bookmarks, preferences, and dynamic follower counts. |
