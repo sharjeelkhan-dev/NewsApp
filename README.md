@@ -5,6 +5,7 @@
 
 | Subsystem | Technical Execution Architecture |
 | :--- | :--- |
+| 🤖 **AI-Powered Commands** | Developed a modern news application using Kotlin and Jetpack Compose, integrating Firebase AI Logic with Gemini 1.5 Flash for advanced content processing. |
 | 🏗️ **Clean Architecture** | Multi-layered decoupled system designed over MVVM, Dagger-Hilt dependency injection, and scalable repository patterns. |
 | 👓 **Dynamic Reader Mode** | Advanced web-scraping logic using "Jsoup Parsing Engines" to strip cluttered web layouts into distraction-free reading canvases. |
 | ☁️ **Cloud Synchronization** | Atomic data pipelines utilizing Firebase Firestore Transactions to manage user bookmarks, preferences, and dynamic follower counts. |
@@ -18,12 +19,12 @@
 <table width="100%">
  <tr>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/5fb51226-e3f4-40f6-a439-cfda28ebe413" width="100%" alt="Screen 1 - Splash Screen" /></td>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/7a7a849f-7f22-4594-b880-3e3b854bdded" width="100%" alt="Screen 2 - Home Screen" /></td>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/0a67180f-8f7f-4a0e-9cb4-b2a8f1c4b3b9" width="100%" alt="Screen 3 - News Detail Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/9d883ffa-6d90-40c1-999c-224c402d94d0" width="100%" alt="Screen 2 - Home Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/36349083-57e8-4470-86e7-d6a334e64192" width="100%" alt="Screen 3 - News Detail Screen" /></td>
  </tr>
  
   <tr>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/bbdc7562-839c-497e-be87-a5309c330666" width="100%" alt="Screen 4 - Explore Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/45af6017-3656-4653-b99f-562fc62c28f7" width="100%" alt="Screen 4 - Explore Screen" /></td>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/5ea362db-0ee9-4026-b83d-38c6671723b9" width="100%" alt="Screen 5 - Bookmark Screen" /></td>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/3fd18e3a-c222-4901-8f75-c0d4cfc2acc1" width="100%" alt="Screen 3 - Profile Screen" /></td>
  </tr>
@@ -37,3 +38,4 @@
 * Android Studio Ladybug (or newer)
 * JDK 17+
 * Android SDK 28 (Android 9.0) or higher
+
