@@ -1,5 +1,6 @@
 package com.sharjeel.newsapp.ui.screens.ai
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,13 +59,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.theme.BluePrimary
+import com.sharjeel.newsapp.ui.theme.NewsAppTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiAssistantScreen(
     onBackClick: () -> Unit,
@@ -80,6 +83,33 @@ fun AiAssistantScreen(
         }
     }
 
+    AiAssistantScreenContent(
+        messages = messages,
+        isLoading = isLoading,
+        textState = textState,
+        onTextChange = { textState = it },
+        onSendMessage = {
+            if (textState.isNotBlank()) {
+                viewModel.sendMessage(textState)
+                textState = ""
+            }
+        },
+        onBackClick = onBackClick,
+        listState = listState
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AiAssistantScreenContent(
+    messages: List<ChatMessage>,
+    isLoading: Boolean,
+    textState: String,
+    onTextChange: (String) -> Unit,
+    onSendMessage: () -> Unit,
+    onBackClick: () -> Unit,
+    listState: LazyListState = rememberLazyListState()
+) {
     AppScaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -184,7 +214,7 @@ fun AiAssistantScreen(
                     ) {
                         BasicTextField(
                             value = textState,
-                            onValueChange = { textState = it },
+                            onValueChange = onTextChange,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(vertical = 8.dp),
@@ -213,12 +243,7 @@ fun AiAssistantScreen(
                         Spacer(modifier = Modifier.width(10.dp))
 
                         IconButton(
-                            onClick = {
-                                if (textState.isNotBlank()) {
-                                    viewModel.sendMessage(textState)
-                                    textState = ""
-                                }
-                            },
+                            onClick = onSendMessage,
                             enabled = textState.isNotBlank(),
                             modifier = Modifier
                                 .size(40.dp)
@@ -257,9 +282,9 @@ fun EnhancedChatBubble(message: ChatMessage) {
     ) {
         Surface(
             modifier = if (isUser) {
-                Modifier.widthIn(max = 280.dp) // User prompt remains compact
+                Modifier.widthIn(max = 280.dp)
             } else {
-                Modifier.fillMaxWidth() // AI Response expands full width
+                Modifier.fillMaxWidth()
             }.shadow(
                 elevation = if (isUser) 2.dp else 1.dp,
                 shape = bubbleShape,
@@ -310,6 +335,87 @@ fun ThinkingIndicator() {
                 color = BluePrimary,
                 fontWeight = FontWeight.SemiBold
             )
+        )
+    }
+}
+
+// =====================================================================
+// PREVIEWS
+// =====================================================================
+
+@Preview(name = "User Bubble - Light", showBackground = true)
+@Composable
+private fun EnhancedChatBubbleUserPreview() {
+    NewsAppTheme {
+        Surface(modifier = Modifier.padding(16.dp)) {
+            EnhancedChatBubble(
+                message = ChatMessage(
+                    text = "Can you summarize today's headlines?",
+                    isUser = true
+                )
+            )
+        }
+    }
+}
+
+@Preview(name = "AI Bubble - Light", showBackground = true)
+@Composable
+private fun EnhancedChatBubbleAiPreview() {
+    NewsAppTheme {
+        Surface(modifier = Modifier.padding(16.dp)) {
+            EnhancedChatBubble(
+                message = ChatMessage(
+                    text = "Here are the top headlines:\n- Global tech updates\n- Financial market trends",
+                    isUser = false
+                )
+            )
+        }
+    }
+}
+
+@Preview(name = "Thinking Indicator - Light", showBackground = true)
+@Composable
+private fun ThinkingIndicatorPreview() {
+    NewsAppTheme {
+        Surface(modifier = Modifier.padding(16.dp)) {
+            ThinkingIndicator()
+        }
+    }
+}
+
+@Preview(name = "Screen - Light Mode", showBackground = true)
+@Composable
+private fun AiAssistantScreenLightPreview() {
+    NewsAppTheme(darkTheme = false) {
+        AiAssistantScreenContent(
+            messages = listOf(
+                ChatMessage("Hello! How can I assist you with the news today?", isUser = false),
+                ChatMessage("Give me a quick update on AI technology.", isUser = true),
+                ChatMessage("Recent advances focus on edge AI processing and natural language understanding in mobile devices.", isUser = false)
+            ),
+            isLoading = false,
+            textState = "",
+            onTextChange = {},
+            onSendMessage = {},
+            onBackClick = {}
+        )
+    }
+}
+
+@Preview(name = "Screen - Dark Mode", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun AiAssistantScreenDarkPreview() {
+    NewsAppTheme(darkTheme = true) {
+        AiAssistantScreenContent(
+            messages = listOf(
+                ChatMessage("Hello! How can I assist you with the news today?", isUser = false),
+                ChatMessage("Summarize the economic news.", isUser = true)
+            ),
+            isLoading = true,
+            textState = "Can you add more details?",
+            onTextChange = {},
+            onSendMessage = {},
+            onBackClick = {}
         )
     }
 }

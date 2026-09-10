@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -65,6 +64,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sharjeel.newsapp.R
+import com.sharjeel.newsapp.domain.model.Article
 import com.sharjeel.newsapp.ui.components.AppScaffold
 import com.sharjeel.newsapp.ui.theme.BluePrimary
 import com.sharjeel.newsapp.ui.theme.NewsAppTheme
@@ -77,22 +77,56 @@ import org.jsoup.nodes.Document
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
-    article: com.sharjeel.newsapp.domain.model.Article? = null,
+    article: Article? = null,
     onBackClick: () -> Unit,
     onCommentClick: () -> Unit,
     onAuthorClick: (String) -> Unit = {},
     viewModel: DetailViewModel = hiltViewModel()
 ) {
-    val aiSummary by viewModel.aiSummary
-    val aiTranslation by viewModel.aiTranslation
-    val aiSentiment by viewModel.aiSentiment
-    val aiEnhancedHeadline by viewModel.aiEnhancedHeadline
-    
-    val isSummarizing by viewModel.isSummarizing
-    val isTranslating by viewModel.isTranslating
-    val isAnalyzingSentiment by viewModel.isAnalyzingSentiment
-    val isEnhancingHeadline by viewModel.isEnhancingHeadline
+    LaunchedEffect(article) {
+        article?.let { viewModel.setArticle(it) }
+    }
 
+    DetailContent(
+        article = article,
+        onBackClick = onBackClick,
+        onCommentClick = onCommentClick,
+        onAuthorClick = onAuthorClick,
+        aiSummary = viewModel.aiSummary.value,
+        aiTranslation = viewModel.aiTranslation.value,
+        aiSentiment = viewModel.aiSentiment.value,
+        aiEnhancedHeadline = viewModel.aiEnhancedHeadline.value,
+        isSummarizing = viewModel.isSummarizing.value,
+        isTranslating = viewModel.isTranslating.value,
+        isAnalyzingSentiment = viewModel.isAnalyzingSentiment.value,
+        isEnhancingHeadline = viewModel.isEnhancingHeadline.value,
+        onSummarizeClick = { viewModel.summarizeArticle(it) },
+        onTranslateClick = { text, lang -> viewModel.translateArticle(text, lang) },
+        onAnalyzeSentimentClick = { viewModel.analyzeSentiment(it) },
+        onEnhanceHeadlineClick = { viewModel.enhanceHeadline(it) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DetailContent(
+    article: Article? = null,
+    onBackClick: () -> Unit,
+    onCommentClick: () -> Unit,
+    onAuthorClick: (String) -> Unit = {},
+    aiSummary: String? = null,
+    aiTranslation: String? = null,
+    aiSentiment: String? = null,
+    aiEnhancedHeadline: String? = null,
+    isSummarizing: Boolean = false,
+    isTranslating: Boolean = false,
+    isAnalyzingSentiment: Boolean = false,
+    isEnhancingHeadline: Boolean = false,
+    onSummarizeClick: (String) -> Unit = {},
+    onTranslateClick: (String, String) -> Unit = { _, _ -> },
+    onAnalyzeSentimentClick: (String) -> Unit = {},
+    onEnhanceHeadlineClick: (String) -> Unit = {}
+) {
     var isFollowing by remember { mutableStateOf(true) }
     var isLiked by remember { mutableStateOf(false) }
     var isBookmarked by remember { mutableStateOf(true) }
@@ -102,10 +136,6 @@ fun DetailScreen(
 
     val logoDomain = remember(article?.url) { article?.url?.let { TimeUtils.getDomain(it) } }
     val logoUrl = if (!logoDomain.isNullOrBlank()) "https://www.google.com/s2/favicons?sz=128&domain=$logoDomain" else ""
-
-    LaunchedEffect(article) {
-        article?.let { viewModel.setArticle(it) }
-    }
 
     LaunchedEffect(article?.url) {
         if (!article?.url.isNullOrBlank()) {
@@ -263,18 +293,9 @@ fun DetailScreen(
                         ),
                         modifier = Modifier.weight(1f)
                     )
-                    if (aiEnhancedHeadline == null) {
-                        IconButton(onClick = { article?.title?.let { viewModel.enhanceHeadline(it) } }) {
-                            if (isEnhancingHeadline) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = BluePrimary)
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "Enhance Title",
-                                    tint = BluePrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                    if (aiEnhancedHeadline == null && isEnhancingHeadline) {
+                        IconButton(onClick = {}) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = BluePrimary)
                         }
                     }
                 }
@@ -289,19 +310,19 @@ fun DetailScreen(
                         label = "Summarize",
                         icon = Icons.Default.Bolt,
                         isLoading = isSummarizing,
-                        onClick = { viewModel.summarizeArticle(fullArticleText) }
+                        onClick = { onSummarizeClick(fullArticleText) }
                     )
                     AIChip(
                         label = "Translate",
                         icon = Icons.Default.Translate,
                         isLoading = isTranslating,
-                        onClick = { viewModel.translateArticle(fullArticleText, "Urdu") }
+                        onClick = { onTranslateClick(fullArticleText, "Urdu") }
                     )
                     AIChip(
                         label = "Analysis",
                         icon = Icons.Default.Analytics,
                         isLoading = isAnalyzingSentiment,
-                        onClick = { viewModel.analyzeSentiment(fullArticleText) }
+                        onClick = { onAnalyzeSentimentClick(fullArticleText) }
                     )
                 }
 
@@ -361,6 +382,7 @@ fun DetailScreen(
     }
 }
 
+
 @Composable
 fun AIChip(
     label: String,
@@ -399,16 +421,23 @@ fun AIResultCard(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("AI INSIGHTS", style = MaterialTheme.typography.labelSmall.copy(color = BluePrimary, fontWeight = FontWeight.Bold, letterSpacing = 1.sp))
+            val headerTitle = when {
+                summary != null && translation == null && sentiment == null -> "AI SUMMARY"
+                else -> "AI INSIGHTS"
             }
+            Text(
+                text = headerTitle,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = BluePrimary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            )
             
             if (sentiment != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Sentiment: $sentiment",
+                    text = sentiment,
                     style = MaterialTheme.typography.labelLarge.copy(
                         color = if (sentiment.contains("Positive", true)) Color(0xFF4CAF50) else if (sentiment.contains("Negative", true)) Color(0xFFF44336) else MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
@@ -418,13 +447,11 @@ fun AIResultCard(
 
             if (summary != null) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("AI Summary", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                 Text(summary, style = MaterialTheme.typography.bodyMedium)
             }
 
             if (translation != null) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Urdu Translation", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                 Text(translation, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -451,6 +478,6 @@ private fun cleanFallbackText(text: String): String {
 @Composable
 fun DetailScreenPreview() {
     NewsAppTheme {
-        DetailScreen(onBackClick = {}, onCommentClick = {})
+        DetailContent(onBackClick = {}, onCommentClick = {})
     }
 }

@@ -1,11 +1,11 @@
 package com.sharjeel.newsapp.data.repository
 
+import android.util.Log
+import com.google.firebase.ai.GenerativeModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.snapshots
-import com.google.firebase.ai.GenerativeModel
-import com.google.firebase.ai.type.content
 import com.sharjeel.newsapp.data.remote.CurrentsApi
 import com.sharjeel.newsapp.domain.model.Article
 import com.sharjeel.newsapp.domain.model.NewsSource
@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,41 +33,37 @@ class NewsRepositoryImpl @Inject constructor(
 
     override suspend fun getTopHeadlines(category: String?): Result<List<Article>> {
         return try {
-            android.util.Log.d("NewsRepo", "Fetching headlines for category: $category")
+            Log.d("NewsRepo", "Fetching headlines for category: $category")
 
             val combinedArticles = mutableListOf<Article>()
 
-            // If category is provided and not "All"/"general", search by category
             if (category != null && category.lowercase() != "all" && category.lowercase() != "general") {
                 combinedArticles.addAll(fetchSearchFromCurrents(category))
             } else {
                 combinedArticles.addAll(fetchFromCurrents())
             }
 
-            // Final fallback to Mock Data if empty
             if (combinedArticles.isEmpty()) {
-                android.util.Log.e("NewsRepo", "Currents API returned no news. Loading Mock Data.")
+                Log.e("NewsRepo", "Currents API returned no news. Loading Mock Data.")
                 combinedArticles.addAll(getMockArticles())
             }
 
             val finalArticles = combinedArticles.distinctBy { it.title }.take(50)
-
-            android.util.Log.d("NewsRepo", "Returning ${finalArticles.size} articles")
+            Log.d("NewsRepo", "Returning ${finalArticles.size} articles")
             Result.success(finalArticles)
         } catch (e: Exception) {
-            android.util.Log.e("NewsRepo", "getTopHeadlines fatal error: ${e.message}", e)
+            Log.e("NewsRepo", "getTopHeadlines fatal error: ${e.message}", e)
             Result.success(getMockArticles())
         }
     }
 
     private suspend fun fetchFromCurrents(): List<Article> {
-        android.util.Log.d("NewsRepo", "fetchFromCurrents: Calling API")
+        Log.d("NewsRepo", "fetchFromCurrents: Calling API")
         return try {
             val response = currentsApi.getLatestNews(
                 language = "en",
                 apiKey = CurrentsApi.API_KEY
             )
-            android.util.Log.d("NewsRepo", "fetchFromCurrents: API Response Status: ${response.status}")
             val articles = response.news?.map { dto ->
                 val safeImage = dto.image?.let {
                     if (it == "None" || it.isEmpty()) ""
@@ -84,75 +83,33 @@ class NewsRepositoryImpl @Inject constructor(
                     sourceId = ""
                 )
             } ?: emptyList()
-            
-            if (articles.isEmpty()) {
-                android.util.Log.d("NewsRepo", "fetchFromCurrents: API returned empty, using mock")
-                getMockArticles()
-            } else {
-                android.util.Log.d("NewsRepo", "fetchFromCurrents: API returned ${articles.size} articles")
-                articles
-            }
+
+            articles
         } catch (e: Exception) {
-            android.util.Log.e("NewsRepo", "fetchFromCurrents: ERROR: ${e.message}", e)
-            getMockArticles()
+            Log.e("NewsRepo", "fetchFromCurrents: ERROR: ${e.message}", e)
+            emptyList()
         }
     }
 
     private fun getMockArticles(): List<Article> {
         return listOf(
             Article(
-                title = "Global Tech Innovation Summit 2024: The Future of AI and Robotics",
-                description = "Leading experts from around the world gather to discuss the transformative impact of artificial intelligence on global industries and society.",
-                content = "The Global Tech Innovation Summit 2024 has officially kicked off in San Francisco, bringing together the brightest minds in technology and science...",
+                title = "Global Tech Innovation Summit: The Future of AI and Robotics",
+                description = "Leading experts gather to discuss the transformative impact of artificial intelligence on global industries.",
+                content = "The Global Tech Innovation Summit has officially kicked off, bringing together top minds in technology...",
                 url = "https://example.com/tech1",
                 urlToImage = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
-                publishedAt = "2024-03-20T10:00:00Z",
+                publishedAt = "Just now",
                 author = "Sarah Johnson",
                 sourceName = "Tech World",
                 sourceId = "tech-world"
-            ),
-            Article(
-                title = "Sustainable Energy Breakthrough: New Hydrogen Fuel Cells for Clean Transport",
-                description = "Researchers announce a major milestone in clean energy technology, paving the way for emission-free heavy transport and aviation.",
-                content = "In a significant leap towards a greener future, scientists have developed a new generation of hydrogen fuel cells that are 30% more efficient...",
-                url = "https://example.com/science1",
-                urlToImage = "https://images.unsplash.com/photo-1509391366360-fe5bb658582f",
-                publishedAt = "2024-03-20T11:30:00Z",
-                author = "Dr. Robert Chen",
-                sourceName = "Scientific Journal",
-                sourceId = "science-journal"
-            ),
-            Article(
-                title = "Major Sports Update: Upcoming Championship Finals Preview",
-                description = "All eyes are on the upcoming finals as teams prepare for the ultimate showdown in the world of professional sports.",
-                content = "With the championship finals just around the corner, excitement is at an all-time high. Both teams have shown incredible form throughout the season...",
-                url = "https://example.com/sports1",
-                urlToImage = "https://images.unsplash.com/photo-1504450758481-7338eba7524a",
-                publishedAt = "2024-03-20T14:45:00Z",
-                author = "James Miller",
-                sourceName = "Sports Daily",
-                sourceId = "sports-daily"
-            ),
-            Article(
-                title = "Global Economy Trends: Navigating Market Volatility in 2024",
-                description = "Financial analysts provide insights into the current state of the global economy and strategies for investors to manage market changes.",
-                content = "The global economy is currently facing a period of significant change. Rising interest rates and geopolitical tensions have led to increased market volatility...",
-                url = "https://example.com/business1",
-                urlToImage = "https://images.unsplash.com/photo-1460925895917-afdab827c52f",
-                publishedAt = "2024-03-20T09:15:00Z",
-                author = "Elena Rodriguez",
-                sourceName = "Market Insider",
-                sourceId = "market-insider"
             )
         )
     }
 
     override suspend fun getNewsByInterests(interests: List<String>): Result<List<Article>> {
         return try {
-            android.util.Log.d("NewsRepo", "Fetching news from Currents for interests: $interests")
-
             val combinedArticles = mutableListOf<Article>()
-
             if (interests.isNotEmpty()) {
                 for (interest in interests.take(5)) {
                     combinedArticles.addAll(fetchSearchFromCurrents(interest))
@@ -162,28 +119,24 @@ class NewsRepositoryImpl @Inject constructor(
             }
 
             if (combinedArticles.isEmpty()) {
-                android.util.Log.e("NewsRepo", "Interests Search Failed. Loading Professional Mock Data.")
                 combinedArticles.addAll(getMockArticles())
             }
 
             val finalArticles = combinedArticles.distinctBy { it.title }.take(50)
             Result.success(finalArticles)
-        } catch (e: Exception) {
-            android.util.Log.e("NewsRepo", "getNewsByInterests error: ${e.message}", e)
+        } catch (_: Exception) {
             Result.success(getMockArticles())
         }
     }
 
     private suspend fun fetchSearchFromCurrents(query: String): List<Article> {
-        android.util.Log.d("NewsRepo", "fetchSearchFromCurrents: Calling API for query: $query")
+        Log.d("NewsRepo", "fetchSearchFromCurrents: Calling API for query: $query")
         return try {
-            // Parameter name changed from keywords to query to fix IDE error
             val response = currentsApi.searchNews(
                 query = query,
                 language = "en",
                 apiKey = CurrentsApi.API_KEY
             )
-            android.util.Log.d("NewsRepo", "fetchSearchFromCurrents: API Response Status: ${response.status}")
             val articles = response.news?.map { dto ->
                 val safeImage = dto.image?.let {
                     if (it == "None" || it.isEmpty()) ""
@@ -204,22 +157,15 @@ class NewsRepositoryImpl @Inject constructor(
                 )
             } ?: emptyList()
 
-            if (articles.isEmpty()) {
-                android.util.Log.d("NewsRepo", "fetchSearchFromCurrents: API returned empty for $query, using mock")
-                getMockArticles()
-            } else {
-                android.util.Log.d("NewsRepo", "fetchSearchFromCurrents: API returned ${articles.size} articles for $query")
-                articles
-            }
+            articles
         } catch (e: Exception) {
-            android.util.Log.e("NewsRepo", "fetchSearchFromCurrents: ERROR for $query: ${e.message}", e)
-            getMockArticles()
+            Log.e("NewsRepo", "fetchSearchFromCurrents ERROR for $query: ${e.message}", e)
+            emptyList()
         }
     }
 
     override suspend fun getNewsBySource(sourceId: String): Result<List<Article>> {
         return try {
-            // Parameter name changed from keywords to query to fix IDE error
             val response = currentsApi.searchNews(
                 query = sourceId,
                 language = "en",
@@ -260,19 +206,14 @@ class NewsRepositoryImpl @Inject constructor(
     override suspend fun followSource(sourceId: String): Result<Unit> {
         return try {
             val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
-            
-            // Run as a transaction to ensure both user list and source count are updated
             firestore.runTransaction { transaction ->
                 val userRef = usersCollection.document(uid)
                 val sourceRef = sourcesCollection.document(sourceId)
-                
                 transaction.update(userRef, "followedSources", FieldValue.arrayUnion(sourceId))
                 transaction.update(sourceRef, "followerCount", FieldValue.increment(1))
             }.await()
-            
             Result.success(Unit)
-        } catch (e: Exception) {
-            // Fallback: If source document doesn't exist, just update user (optional: create source doc)
+        } catch (_: Exception) {
             try {
                 val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
                 usersCollection.document(uid)
@@ -288,17 +229,14 @@ class NewsRepositoryImpl @Inject constructor(
     override suspend fun unfollowSource(sourceId: String): Result<Unit> {
         return try {
             val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
-            
             firestore.runTransaction { transaction ->
                 val userRef = usersCollection.document(uid)
                 val sourceRef = sourcesCollection.document(sourceId)
-                
                 transaction.update(userRef, "followedSources", FieldValue.arrayRemove(sourceId))
                 transaction.update(sourceRef, "followerCount", FieldValue.increment(-1))
             }.await()
-            
             Result.success(Unit)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             try {
                 val uid = auth.currentUser?.uid ?: throw Exception("User not logged in")
                 usersCollection.document(uid)
@@ -366,7 +304,7 @@ class NewsRepositoryImpl @Inject constructor(
                 .get()
                 .await()
             doc.exists()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -458,17 +396,78 @@ class NewsRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun extractSearchKeywords(query: String): String {
+        val stopWords = setOf(
+            "who", "what", "where", "when", "why", "how", "is", "are", "was", "were", "the", "a", "an",
+            "kon", "kya", "hai", "hain", "ka", "ki", "ke", "ko", "par", "me", "tell", "me", "about",
+            "give", "latest", "news", "updates", "regarding", "info", "details"
+        )
+        val cleaned = query.lowercase(Locale.ROOT)
+            .replace(Regex("[^a-zA-Z0-9\\s]"), "")
+            .split("\\s+".toRegex())
+            .filter { it.isNotBlank() && !stopWords.contains(it) }
+            .joinToString(" ")
+
+        return cleaned.ifBlank { query }
+    }
+
     override suspend fun askAiAssistant(query: String, context: String?): Result<String> {
         return try {
-            val systemPrompt = "You are a smart News Assistant for the 'Akhbar' app. Help the user with their news-related questions."
-            val fullPrompt = if (context != null) {
-                "$systemPrompt\n\nContext about the current article:\n$context\n\nUser Question: $query"
-            } else {
-                "$systemPrompt\n\nUser Question: $query"
+            val relevantContext = if (context == null) {
+                val cleanKeywords = extractSearchKeywords(query)
+                Log.d("AkhbarAI", "Extracted search keywords: '$cleanKeywords' from query: '$query'")
+
+                var searchResults = fetchSearchFromCurrents(cleanKeywords).take(10)
+
+                if (searchResults.isEmpty()) {
+                    Log.d("AkhbarAI", "Keyword search empty. Fetching latest top headlines as context.")
+                    searchResults = fetchFromCurrents().take(10)
+                }
+
+                if (searchResults.isNotEmpty()) {
+                    searchResults.joinToString("\n") { article ->
+                        "- Title: ${article.title}\n  Summary: ${article.description}\n  Source: ${article.sourceName}\n  Date: ${article.publishedAt}"
+                    }
+                } else null
+            } else null
+
+            val currentDate = SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.getDefault()).format(Date())
+
+            val systemPrompt = """
+                You are 'Akhbar AI', a high-intelligence, globally aware assistant. 
+                You have two powerful capabilities:
+                1. WORLDWIDE KNOWLEDGE: You can answer ANY question about history, science, tech, celebrities, geography, or general knowledge from across the globe.
+                2. LIVE NEWS AWARENESS: You are integrated with the 'Akhbar News App' and have access to the latest live news feed (provided below).
+
+                RESPONSE GUIDELINES:
+                - ALWAYS answer the user's question directly and comprehensively using your full worldwide knowledge.
+                - INTEGRATION: If the user's question relates to current events, cross-reference your worldwide knowledge with the 'RECENT NEWS FEED CONTEXT' provided below to give the most up-to-date and accurate answer.
+                - If the query is just a general fact (e.g. "Who is the President of France?"), answer it immediately.
+                - If the query is about news (e.g. "What happened in the stock market today?"), use the provided news context and mention the source/date from the context.
+                - Be factual, polite, and reply in the EXACT language used by the user (English, Urdu, or Roman Urdu).
+                - DO NOT say "I am just a news assistant" or "I don't have information". If you know it, say it.
+                
+                Current System Date: $currentDate
+            """.trimIndent()
+
+            val fullPrompt = buildString {
+                append(systemPrompt)
+                if (!relevantContext.isNullOrBlank()) {
+                    append("\n\n=== RECENT NEWS FEED CONTEXT (FROM AKHBAR APP) ===\n")
+                    append(relevantContext)
+                }
+                if (!context.isNullOrBlank()) {
+                    append("\n\n=== SPECIFIC ARTICLE CONTEXT ===\n")
+                    append(context)
+                }
+                append("\n\nUSER QUESTION: ")
+                append(query)
             }
+
             val response = generativeModel.generateContent(fullPrompt)
             Result.success(response.text ?: "I'm sorry, I couldn't process that request.")
         } catch (e: Exception) {
+            Log.e("AkhbarAI", "Error in askAiAssistant: ${e.message}", e)
             Result.failure(e)
         }
     }
