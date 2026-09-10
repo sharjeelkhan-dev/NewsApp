@@ -24,7 +24,7 @@
  </tr>
  
   <tr>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/45af6017-3656-4653-b99f-562fc62c28f7" width="100%" alt="Screen 4 - Explore Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/b594a7e0-826c-4742-8520-d01540f7ca0e" width="100%" alt="Screen 4 - Explore Screen" /></td>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/5ea362db-0ee9-4026-b83d-38c6671723b9" width="100%" alt="Screen 5 - Bookmark Screen" /></td>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/3fd18e3a-c222-4901-8f75-c0d4cfc2acc1" width="100%" alt="Screen 3 - Profile Screen" /></td>
  </tr>
