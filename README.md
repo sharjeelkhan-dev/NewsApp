@@ -20,7 +20,7 @@
  <tr>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/5fb51226-e3f4-40f6-a439-cfda28ebe413" width="100%" alt="Screen 1 - Splash Screen" /></td>
     <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/9d883ffa-6d90-40c1-999c-224c402d94d0" width="100%" alt="Screen 2 - Home Screen" /></td>
-    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/36349083-57e8-4470-86e7-d6a334e64192" width="100%" alt="Screen 3 - News Detail Screen" /></td>
+    <td width="33.3%" align="center"><img src="https://github.com/user-attachments/assets/10ca44b7-33d9-45e1-b733-3e6db6fe0769" width="100%" alt="Screen 3 - News Detail Screen" /></td>
  </tr>
  
   <tr>
@@ -38,4 +38,3 @@
 * Android Studio Ladybug (or newer)
 * JDK 17+
 * Android SDK 28 (Android 9.0) or higher
-
